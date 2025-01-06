@@ -1,0 +1,222 @@
+---
+title: "A Very Kaggle Christmas"
+output: github_document
+---
+
+## Data Wrangling
+
+Let's import the data, remove the variables with no variation or information, and split the data into `train` and `test`.
+
+```{r}
+# Load packages.
+library(rethinking)
+library(tidyverse)
+library(tidymodels)
+library(rstan)
+library(bayesplot)
+library(tidybayes)
+
+# Set simulation seed.
+set.seed(42)
+
+# Stan options.
+options(mc.cores = parallel::detectCores())
+rstan_options(auto_write = TRUE)
+
+# Import and mutate data.
+data <- read_csv(here::here("Projects", "Data", "data.csv")) %>%
+  separate(game_date, into = c("year", "month", "day")) %>%            # Get year, month, and day out of game_date.
+  mutate(
+    time_remaining = str_c(minutes_remaining, ".", seconds_remaining), # Create a time_remaining variable.
+    time_remaining = as.numeric(time_remaining),                       # Make sure it's numeric.
+    home = str_detect(matchup, "vs."),                                 # Create a home dummy.
+    home = as.numeric(home),                                           # Make sure it's numeric.
+    period = as.character(period),                                     # Make sure period is nominal.
+    playoffs = as.numeric(playoffs)                                    # Make sure playoffs is numeric.
+  ) %>%
+  select(
+    -c(
+      team_id, team_name,                                              # No variation (always Lakers).
+      game_event_id, game_id,                                          # Different IDs.
+      shot_id,                                                         # Shot ID that is duplicated in shot type variables.
+      matchup,                                                         # Variable that we extracted the home game dummy from.
+      lat, lon,                                                        # Latitude and longitude (we're using loc_x and loc_y).
+      minutes_remaining, seconds_remaining                             # Variables used to create time_remaining.
+    )
+  )
+
+# Split into training and testing.
+train <- data %>% filter(!is.na(shot_made_flag))
+test <- data %>% filter(is.na(shot_made_flag)) %>% select(-shot_made_flag)
+```
+
+Since our `test` data doesn't have `shot_made_flag` information, we will split our `train` data into a `train_partial` and `valid_partial`. Additionally, we'll use the `recipe` package to expedite data preparation for training and test data.
+
+```{r}
+# Split training into training and validation.
+train_split <- initial_split(train, prop = 0.8)
+
+# Prepare the data for modeling.
+data_recipe <- training(train_split) %>%                       # Create a recipe for data prep.
+  recipe(shot_made_flag ~ .) %>%                               # Specify model.
+  step_center(loc_x, loc_y, time_remaining, shot_distance) %>% # Center variables.
+  step_scale(loc_x, loc_y, time_remaining, shot_distance) %>%  # Scale variables.
+  step_dummy(all_nominal()) %>%                                # Create dummies out of all_nominal() variables.
+  prep()                                                       # Execute recipe on the training data.
+
+# Extract the prepped training data.
+train_partial <- juice(data_recipe)
+
+# Apply the recipe to the validation data and drop rows with NAs.
+valid_partial <- data_recipe %>% 
+  bake(testing(train_split)) %>% 
+  drop_na()
+
+# Apply the recipe to the test data for prediction and replace NAs with 0s.
+test_baked <- data_recipe %>% 
+  bake(test) %>%
+  map_df(replace_na, 0)
+```
+
+## Model Fitting and Prediction
+
+Since `shot_made_flag` is binary, we need a non-normal likelihood. The most obvious likelihood is for `shot_made_flag ~ binomial(1, p)` where we can use a logit link function for a linear model `p ~ inv_logit(X * beta)`. Let's start with a flat model.
+
+### Flat Model
+
+```
+# Likelihood.
+shot_made_flag_n ∼ binomial(1, p)
+p_n = inv_logit(X_n * beta), for n = 1:N
+
+# Priors.
+beta_i ~ Normal(0, 1), for i = 1:I
+```
+
+```{stan model01, output.var="model01", eval=FALSE}
+// Index values and observations.
+data {
+  int<lower = 1> N_train;                  // Number of training data observations.
+  int<lower = 1> N_valid;                  // Number of validation data observations.
+  int<lower = 1> N_test;                   // Number of test data observations.
+  int<lower = 1> I;                        // Number of covariates.
+  
+  int shot_made_flag[N_train];             // Vector of observations.
+  matrix[N_train, I] X_train;              // Matrix of training data covariates.
+  matrix[N_valid, I] X_valid;              // Matrix of validation data covariates.
+  matrix[N_test, I] X_test;                // Matrix of test data covariates.
+}
+
+// Parameters.
+parameters {
+  vector[I] beta;                         // Vector of coefficients.
+}
+
+// Simple regression.
+model {
+  // LHS of logit link function.
+  real p[N_train];
+  
+  // Priors.
+  beta ~ normal(0, 1);
+
+  // Likelihood.
+  for (n in 1:N_train) {
+    p[n] = inv_logit(X_train[n,] * beta);
+  }
+  shot_made_flag ~ binomial(1 , p);
+}
+
+// Generate predictions using the posterior.
+generated quantities {
+  real p_valid[N_valid];                 // LHS of logit link function for validation data.
+  real y_valid[N_valid];                 // Vector of predicted observations for validation data.
+  real p_test[N_test];                   // LHS of logit link function for test data.
+  real y_test[N_test];                   // Vector of predicted observations for test data.
+
+  // Generate posterior prediction distribution.
+  for (n in 1:N_valid) {
+    p_valid[n] = inv_logit(X_valid[n,] * beta);
+    y_valid[n] = binomial_rng(1, p_valid[n]);
+  }
+  for (n in 1:N_test) {
+    p_test[n] = inv_logit(X_test[n,] * beta);
+    y_test[n] = binomial_rng(1, p_test[n]);
+  }
+}
+```
+
+We include `generated quantities` to compute predictions for the validation and test data at the same time.
+
+Now we can calibrate the model.
+
+```{r eval=FALSE}
+# Specify data.
+data_list <- list(
+  # Covariate index.
+  N_train = nrow(train_partial),
+  N_valid = nrow(valid_partial),
+  N_test = nrow(test_baked),
+  I = ncol(train_partial),
+  
+  # Vector of training data observations.
+  shot_made_flag = train_partial$shot_made_flag,
+  
+  # Matrix of training data covariates.
+  X_train = train_partial %>%
+    mutate(intercept = 1) %>%
+    select(-shot_made_flag),
+  
+  # Matrix of validation data covariates.
+  X_valid = valid_partial %>%
+    mutate(intercept = 1) %>%
+    select(-shot_made_flag),
+  
+  # Matrix of testing data covariates.
+  X_test = test_baked %>%
+    mutate(intercept = 1)
+)
+
+# Fit the model and save output.
+out03 <- stan(
+  file = here::here("Projects", "Code", "model01.stan"),
+  data = data_list,
+  seed = 42
+)
+```
+
+How well did model do, based on the validation data?
+
+```{r echo=FALSE}
+load(file = here::here("Projects", "Output", "model03-output.RData"))
+```
+
+```{r}
+# Extract predictions.
+y_valid <- rstan::extract(out03)$y_valid
+p_test <- rstan::extract(out03)$p_test
+
+# Check with validation.
+valid_partial %>% 
+  select(shot_made_flag) %>% 
+  mutate(y_valid = ifelse(apply(y_valid, 2, mean) > 0.5, 1, 0)) %>% 
+  mutate(hit = abs(shot_made_flag - y_valid)) %>% 
+  summarize(
+    loss = mean(hit),
+    hit_rate = 1 - mean(hit)
+  )
+```
+
+Pretty good. Let's get the submission ready.
+
+```{r eval=FALSE}
+# Prepare submission.
+read_csv(here::here("Projects", "Data", "sample_submission.csv")) %>% 
+  select(shot_id) %>% 
+  mutate(shot_made_flag = apply(p_test, 2, mean)) %>% 
+  write_csv(here::here("Projects", "Output", "submission.csv"))
+```
+
+We get a `0.611` loss on the test data, better than the deep learning model but not as good as boosting.
+
+

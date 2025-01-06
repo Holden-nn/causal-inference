@@ -1,0 +1,511 @@
+---
+title: "Model Parameterizations"
+subtitle: "MKTG 585R Quantitative Marketing Pre-PhD Seminar"
+highlight-style: github
+format: 
+  revealjs:
+    theme: simple
+    scrollable: true
+    slide-number: true
+    self-contained: true
+execute:
+  echo: true
+  output: true
+  warning: true
+knitr:
+  opts_chunk:
+    fig.path: "../Figures/"
+---
+
+# Covariance Decomposition
+
+## 
+
+![](../Figures/covariance-decomposition-01.png)
+
+---
+
+![](../Figures/covariance-decomposition-02.png)
+
+---
+
+![](../Figures/covariance-decomposition-03.png)
+
+## Covariance by Components
+
+```{r}
+#| warning: false
+# Load packages.
+library(tidyverse)
+library(rethinking)
+
+sigma_alpha <- 1  # Intercept standard deviation.
+sigma_beta <- 0.5 # Slope standard deviation.
+rho <- -0.7       # Correlation between parameter types.
+
+# Multivariate covariance decomposed into scale and correlation.
+sigmas <- c(sigma_alpha, sigma_beta)
+Rho <- matrix(c(1, rho, rho, 1), nrow = 2)
+
+# Matrix multiply to get the covariance matrix.
+Sigma <- diag(sigmas) %*% Rho %*% diag(sigmas)
+```
+
+## `quad_form_diag()`
+
+```{r}
+diag(sigmas) # Scale
+Rho          # %*% Correlation Matrix
+diag(sigmas) # %*% Scale
+Sigma        # = Covariance Matrix
+```
+
+---
+
+![](../Figures/cholesky-meme.jpg)
+
+## Cholesky Decomposition
+
+We can take any square, symmetric matrix `R` and decompose it into its Cholesky factor `L` such that:
+
+```{r}
+Rho
+
+t(chol(Rho)) %*% chol(Rho)
+```
+
+## Centered Multilevel Regression
+
+```{stan}
+#| eval: false
+#| output.var: multilevel-regression-01
+// Index values, observations, and covariates.
+data {
+  int<lower = 1> N;                     // Number of observations.
+  int<lower = 1> K;                     // Number of groups/clusters.
+  int<lower = 1> I;                     // Number of observation-level covariates.
+  
+  vector[N] y;                          // Vector of observations.
+  array[N] int<lower = 1, upper = K> g; // Vector of group assignments.
+  matrix[N, I] X;                       // Matrix of observation-level covariates.
+}
+
+// Parameters.
+parameters {
+  vector[I] gamma;                      // Vector of population-level parameters.
+  corr_matrix[I] Omega;                 // Population model correlation matrix.
+  vector<lower = 0>[I] tau;             // Population model scale parameters. 
+  matrix[K, I] Beta;                    // Matrix of observation-level parameters.
+  real<lower = 0> sigma;                // Variance of the observation model.
+}
+
+// Regression model.
+model {
+  // Hyperpriors.
+  gamma ~ normal(0, 5);
+  Omega ~ lkj_corr(4);
+  tau ~ normal(0, 5);
+  
+  // Prior.
+  sigma ~ normal(0, 5);
+
+  // Population model.
+  for (k in 1:K) {
+    Beta[k,] ~ multi_normal(gamma, quad_form_diag(Omega, tau));
+  }
+
+  // Observation model.
+  for (n in 1:N) {
+    y[n] ~ normal(X[n,] * Beta[g[n],]', sigma);
+  }
+}
+
+// Generate quantities at each draw.
+generated quantities {
+  // Compute the log-likelihood.
+  vector[N] log_lik;
+  for (n in 1:N) {
+    log_lik[n] = normal_lpdf(y[n] | X[n,] * Beta[g[n],]', sigma);
+  }
+}
+```
+
+```{r}
+#| eval: false
+#| echo: false
+# Load additional packages.
+library(rstan)
+library(cmdstanr)
+library(posterior)
+library(bayesplot)
+
+N = 500 # Number of observations.
+K = 5   # Number of groups.
+I = 7   # Number of observation-level covariates.
+J = 1   # Number of population-level covariates.
+
+# Vector of group assignments.
+g = sample(K, N, replace = TRUE)
+  
+# Matrix of observation-level covariates.
+X = cbind(
+  rep(1, N),
+  matrix(runif(N * (I - 1), min = 1, max = 10), nrow = N)
+)
+
+# Matrix of population-level covariates.
+Z = cbind(
+  rep(1, K),
+  matrix(runif(K * (J - 1), min = 2, max = 5), nrow = K)
+)
+
+# Generate data.
+y <- rep(NA, N)
+Gamma <- matrix(NA, nrow = J, ncol = I)
+Sigma <- matrix(NA, nrow = I, ncol = I)
+Beta <- matrix(NA, nrow = K, ncol = I)
+for (j in 1:J) {
+  for (i in 1:I) {
+    Gamma[j, i] = rnorm(1, 0, 5)
+  }
+}
+Sigma = clusterGeneration::genPositiveDefMat(dim = I, covMethod = "eigen")$Sigma
+for (k in 1:K) {
+  Beta[k,] = MASS::mvrnorm(mu = as.vector(Z[k,] %*% Gamma), Sigma = Sigma)
+}
+sigma <- abs(rnorm(1, 0, 5))
+for (n in 1:N) {
+  y[n] = rnorm(1, X[n,] %*% Beta[g[n],], sigma)
+}
+
+# Compile the model.
+mlreg_01 <- cmdstan_model(here::here("Code", "multilevel-regression-01.stan"))
+
+# Structure the data to match the data block.
+data_list <- list(
+  N = N,
+  K = K,
+  I = I,
+  y = y,
+  g = g,
+  X = X
+)
+
+# Fit the model by sampling from the posterior.
+fit_01 <- mlreg_01$sample(
+  data = data_list, 
+  seed = 123, 
+  chains = 4, 
+  parallel_chains = 4
+)
+
+# Look at model diagnostics.
+fit_01$cmdstan_diagnose()
+```
+
+# Non-Centered Parameterization
+
+## 
+
+![](../Figures/non-centered.png)
+
+---
+
+![](../Figures/reparameterize-01.png)
+
+---
+
+![](../Figures/reparameterize-02.png)
+
+---
+
+![](../Figures/cholesky-decomposition-01.png)
+
+---
+
+![](../Figures/cholesky-decomposition-02.png)
+
+## Non-Centered Multilevel Regression
+
+```{stan}
+#| eval: false
+#| output.var: multilevel-regression-02
+// Index values, observations, and covariates.
+data {
+  int<lower = 1> N;                     // Number of observations.
+  int<lower = 1> K;                     // Number of groups/clusters.
+  int<lower = 1> I;                     // Number of observation-level covariates.
+  
+  vector[N] y;                          // Vector of observations.
+  array[N] int<lower = 1, upper = K> g; // Vector of group assignments.
+  matrix[N, I] X;                       // Matrix of observation-level covariates.
+}
+
+// Parameters.
+parameters {
+  vector[I] gamma;                      // Vector of population-level parameters.
+  cholesky_factor_corr[I] L_Omega;      // Population model correlation matrix Cholesky factor.
+  vector<lower = 0>[I] tau;             // Population model scale parameters. 
+  matrix[I, K] Delta;                   // Matrix of non-centered observation-level parameters.
+  real<lower = 0> sigma;                // Variance of the observation model.
+}
+
+// Transformed parameters.
+transformed parameters {
+  matrix[K, I] V;                       // Matrix of rescaled non-centered observation-level parameters.
+  matrix[K, I] Beta;                    // Matrix of observation-level parameters.
+  
+  // Compute the non-centered parameterization.
+  V = (diag_pre_multiply(tau, L_Omega) * Delta)';
+  for (i in 1:I) {
+    Beta[,i] = gamma[i] + V[,i];
+  }
+}
+
+// Regression model.
+model {
+  // Hyperpriors.
+  gamma ~ normal(0, 5);
+  L_Omega ~ lkj_corr_cholesky(4);
+  tau ~ normal(0, 5);
+  
+  // Prior.
+  sigma ~ normal(0, 5);
+
+  // Population model.
+  to_vector(Delta) ~ normal(0, 1);
+
+  // Observation model.
+  for (n in 1:N) {
+    y[n] ~ normal(X[n,] * Beta[g[n],]', sigma);
+  }
+}
+
+// Generate quantities at each draw.
+generated quantities {
+  // Compute the log-likelihood.
+  vector[N] log_lik;
+  for (n in 1:N) {
+    log_lik[n] = normal_lpdf(y[n] | X[n,] * Beta[g[n],]', sigma);
+  }
+  
+  // Compute the correlation matrix Omega.
+  corr_matrix[I] Omega;
+  Omega = multiply_lower_tri_self_transpose(L_Omega);
+}
+```
+
+```{r}
+#| eval: false
+#| echo: false
+# Compile the model.
+mlreg_02 <- cmdstan_model(here::here("Code", "multilevel-regression-02.stan"))
+
+# Structure the data to match the data block.
+data_list <- list(
+  N = N,
+  K = K,
+  I = I,
+  y = y,
+  g = g,
+  X = X
+)
+
+# Fit the model by sampling from the posterior.
+fit_02 <- mlreg_02$sample(
+  data = data_list, 
+  seed = 123, 
+  chains = 4, 
+  parallel_chains = 4
+)
+
+# Look at model diagnostics.
+fit_02$cmdstan_diagnose()
+```
+
+# Including Group Covariates
+
+## "Unknown" and "Known" Heterogeneity
+
+Having a population model allows us to characterize **unknown heterogeneity** across the population such that the varying effects are drawn from the given population.
+
+```
+// Population model.
+for (k in 1:K) {
+  Beta[k,] ~ multi_normal(gamma, quad_form_diag(Omega, tau));
+}
+```
+
+If we also have data that might help *explain* that heterogeneity, we can introduce a second linear model that models **known heterogeneity**.
+
+```
+// Population model.
+for (k in 1:K) {
+  Beta[k,] ~ multi_normal(Z[k,] * Gamma, quad_form_diag(Omega, tau));
+}
+```
+
+## Non-Centered Multilevel Regression with Population-Level Covariates
+
+```{stan}
+#| eval: false
+#| output.var: multilevel-regression-03
+// Index values, hyperprior values, observations, and covariates.
+data {
+  int<lower = 1> N;                     // Number of observations.
+  int<lower = 1> K;                     // Number of groups/clusters.
+  int<lower = 1> I;                     // Number of observation-level covariates.
+  int<lower = 1> J;                     // Number of population-level covariates.
+  
+  real Gamma_mean;                      // Mean of population-level means.
+  real<lower = 0> Gamma_scale;          // Scale of population-level means.
+  real<lower = 0> Omega_shape;          // Shape of population-level scale.
+  real tau_mean;                        // Mean of population-level scale.
+  real<lower = 0> tau_scale;            // Scale of population-level scale.
+  real sigma_mean;                      // Mean of observation-level variance.
+  real<lower = 0> sigma_scale;          // Scale of observation-level variance.
+  
+  vector[N] y;                          // Vector of observations.
+  array[N] int<lower = 1, upper = K> g; // Vector of group assignments.
+  matrix[N, I] X;                       // Matrix of observation-level covariates.
+  matrix[K, J] Z;                       // Matrix of population-level covariates.
+}
+
+// Parameters.
+parameters {
+  matrix[J, I] Gamma;                   // Vector of population-level parameters.
+  cholesky_factor_corr[I] L_Omega;      // Population model correlation matrix Cholesky factor.
+  vector<lower = 0>[I] tau;             // Population model scale parameters. 
+  matrix[I, K] Delta;                   // Matrix of non-centered observation-level parameters.
+  real<lower = 0> sigma;                // Variance of the observation model.
+}
+
+// Transformed parameters.
+transformed parameters {
+  matrix[K, I] V;                       // Matrix of rescaled non-centered observation-level parameters.
+  matrix[K, I] Beta;                    // Matrix of observation-level parameters.
+  
+  // Compute the non-centered parameterization.
+  V = (diag_pre_multiply(tau, L_Omega) * Delta)';
+  for (i in 1:I) {
+    Beta[,i] = Z * Gamma[,i] + V[,i];
+  }
+}
+
+// Regression model.
+model {
+  // Hyperpriors.
+  to_vector(Gamma) ~ normal(Gamma_mean, Gamma_scale);
+  L_Omega ~ lkj_corr_cholesky(Omega_shape);
+  tau ~ normal(tau_mean, tau_scale);
+  
+  // Prior.
+  sigma ~ normal(sigma_mean, sigma_scale);
+
+  // Population model.
+  to_vector(Delta) ~ normal(0, 1);
+
+  // Observation model.
+  for (n in 1:N) {
+    y[n] ~ normal(X[n,] * Beta[g[n],]', sigma);
+  }
+}
+
+// Generate quantities at each draw.
+generated quantities {
+  // Compute the log-likelihood.
+  vector[N] log_lik;
+  for (n in 1:N) {
+    log_lik[n] = normal_lpdf(y[n] | X[n,] * Beta[g[n],]', sigma);
+  }
+  
+  // Compute the correlation matrix Omega.
+  corr_matrix[I] Omega;
+  Omega = multiply_lower_tri_self_transpose(L_Omega);
+}
+```
+
+```{r}
+#| eval: false
+#| echo: false
+N = 500 # Number of observations.
+K = 5   # Number of groups.
+I = 7   # Number of observation-level covariates.
+J = 3   # Number of population-level covariates.
+
+# Vector of group assignments.
+g = sample(K, N, replace = TRUE)
+  
+# Matrix of observation-level covariates.
+X = cbind(
+  rep(1, N),
+  matrix(runif(N * (I - 1), min = 1, max = 10), nrow = N)
+)
+
+# Matrix of population-level covariates.
+Z = cbind(
+  rep(1, K),
+  matrix(runif(K * (J - 1), min = 2, max = 5), nrow = K)
+)
+
+# Generate data.
+y <- rep(NA, N)
+Gamma <- matrix(NA, nrow = J, ncol = I)
+Sigma <- matrix(NA, nrow = I, ncol = I)
+Beta <- matrix(NA, nrow = K, ncol = I)
+for (j in 1:J) {
+  for (i in 1:I) {
+    Gamma[j, i] = rnorm(1, 0, 5)
+  }
+}
+Sigma = clusterGeneration::genPositiveDefMat(dim = I, covMethod = "eigen")$Sigma
+for (k in 1:K) {
+  Beta[k,] = MASS::mvrnorm(mu = as.vector(Z[k,] %*% Gamma), Sigma = Sigma)
+}
+sigma <- abs(rnorm(1, 0, 5))
+for (n in 1:N) {
+  y[n] = rnorm(1, X[n,] %*% Beta[g[n],], sigma)
+}
+
+# Compile the model.
+mlreg_03 <- cmdstan_model(here::here("Code", "multilevel-regression-03.stan"))
+
+# Structure the data to match the data block.
+data_list <- list(
+  N = N,
+  K = K,
+  I = I,
+  J = J,
+  
+  Gamma_mean = 0,      # Mean of population-level means
+  Gamma_scale = 1,     # Scale of population-level means
+  Omega_shape = 5,     # Shape of population-level scale
+  tau_mean = 0,        # Mean of population-level scale
+  tau_scale = 10,      # Scale of population-level scale
+  sigma_mean = 0,      # Mean of observation-level variance
+  sigma_scale = 2,     # Scale of observation-level variance
+  
+  y = y,
+  g = g,
+  X = X,
+  Z = Z
+)
+
+# Fit the model by sampling from the posterior.
+fit_03 <- mlreg_03$sample(
+  data = data_list, 
+  seed = 123, 
+  chains = 4, 
+  parallel_chains = 4
+)
+
+# Look at model diagnostics.
+fit_03$cmdstan_diagnose()
+```
+
+## Removing the Scaffolding Redux
+
+[Stan](https://mc-stan.org) has a number of awesome resources (including *Statistical Rethinking*): the [Stan User's Guide](https://mc-stan.org/docs/stan-users-guide/index.html) (plus the [Stan Reference Manual](https://mc-stan.org/docs/reference-manual/index.html) and the [Stan Functions Reference](https://mc-stan.org/docs/functions-reference/index.html)).
+
+There are a growing number of supporting packages: [{bayesplot}](https://mc-stan.org/bayesplot/index.html), [{posterior}](https://mc-stan.org/posterior/), [{loo}](https://mc-stan.org/loo/), [{ggdist}](https://mjskay.github.io/ggdist/index.html), [{tidybayes}](https://mjskay.github.io/tidybayes/), and [{brms}](https://paul-buerkner.github.io/brms/).
+

@@ -1,0 +1,6 @@
+---
+title: "Notes"
+format: gfm
+---
+
+My personal notes.

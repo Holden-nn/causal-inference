@@ -1,0 +1,6 @@
+---
+title: "Assignments"
+format: gfm
+---
+
+Assignments and solutions.

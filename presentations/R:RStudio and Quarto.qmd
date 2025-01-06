@@ -1,0 +1,400 @@
+---
+title: "R/RStudio and Quarto"
+subtitle: "MKTG 585R Quantitative Marketing Pre-PhD Seminar"
+highlight-style: github
+format: 
+  revealjs:
+    theme: simple
+    scrollable: true
+    slide-number: true
+    self-contained: true
+execute:
+  echo: true
+  output: true
+  warning: true
+---
+
+# R/RStudio
+
+## Orientation
+
+- Console: Where you run code and perform calculations.
+- Source: Create and **save** R scripts and send code to the Console.
+- Environment: A snapshot of what you have loaded.
+- Git: Where you can commit, pull, push, and change branches.
+- Help: Look up documentation, including "run examples" and cheatsheets.
+- Files: The **working directory** for your project.
+
+## RStudio Tools > Global Options
+
+- General > Save workspace to .RData on exit: Never.
+- Code > Editing > Execution > Ctrl + Enter executes: Multiple consecutive R lines.
+- Code > Editing > Use native pipe operator.
+- Code > Display > General > Highlight selected line.
+- Code > Display > General > Rainbow parentheses.
+- Code > Saving > Automatically save when editor loses focus.
+- Appearance.
+
+## Functions
+
+![](../Figures/functions.png){fig-align="center"}
+
+We import, wrangle, visualize, and model data using **functions**. Functions are composed of **arguments** that tell the function how to operate.
+
+- Using a function is referred to as a “call” or a “function call.”
+- Don’t forget you have Help.
+
+## The tidyverse
+
+The **tidyverse** is a collection of R packages that share common philosophies and are designed to work together. An **R package** is a collection of functions, documentation, and sometimes data.
+
+```{r}
+#| eval: false
+install.packages("tidyverse") # Only install once.
+library(tidyverse)
+```
+
+```{r}
+#| echo: false
+library(tidyverse)
+```
+
+## Just Once: Clone Repo
+
+Create a new project using `Version Control > Git`.
+
+![](../Figures/clone.png){fig-align="center"}
+
+## Safe File Paths
+
+Using a .Rproj file helps us keep track of the working directory as well as safely deal with file paths. File paths can be tricky because they are operating system and user-specific. We can install the here package and use `here()` in conjunction with an RStudio project to write file paths for us.
+
+```{r}
+here::here()
+```
+
+## Import CSV Files
+
+Whenever we need a file path, we can use `here()` and build up from the working directory. For example, if `customer_data.csv` is in the `Data` folder in your working directory:
+
+```{r}
+customer_data <- read_csv(here::here("Data", "customer_data.csv"))
+```
+
+---
+
+- Note that `customer_data` now appears in our Environment.
+- The Environment lists any **objects** (i.e., data, variables, or custom functions) we've assigned a name using `<-`.
+- We can also view objects in their own tab.
+
+## Data Frames
+
+```{r}
+#| output: true
+
+customer_data
+```
+
+---
+
+```{r}
+glimpse(customer_data)
+```
+
+## Filter Observations
+
+We often want to filter our data to **keep certain observations using column values**.
+
+```{r}
+filter(customer_data, college_degree == "Yes")
+```
+
+---
+
+- We can filter by values in a column *not* equalling something like `region != "West"`.
+- We can filter by more than one logical argument, as with `gender == "Female", income > 70000`.
+
+## Slice Observations
+
+Sometimes we want to slice our data to **keep certain observations using their position in the data**.
+
+```{r}
+slice(customer_data, 1:5)
+```
+
+## Arrange Observations
+
+We can arrange observations to reveal helpful information and check data. By default this is ascending order, bu we can use the **helper function** `desc()` to modify the output.
+
+```{r}
+arrange(customer_data, birth_year)
+```
+
+## Select Variables
+
+Sometimes we only care to **keep certain variables**, especially when working with a large dataset.
+
+```{r}
+select(customer_data, region:review_text)
+```
+
+---
+
+There are a number of helper functions you can use with `select()`, including `starts_with()`, `contains()`, `matches()`, `num_range()`, `all_of()`, `any_of()`, and `everything()`.
+
+## Mutate Variables
+
+We can also **recode existing variables** or **create new variables**.
+
+```{r}
+mutate(customer_data, income = income / 1000)
+```
+
+---
+
+Two important things to remember:
+
+1. We can **overwrite** variables in a data frame as well as objects if we use the same name.
+2. Good variable (and object) names only use lowercase letters, numbers, and `_`. For example: `good_name2` and `2bad name`. Bad names should be renamed (but can be referenced if surrounded with ``).
+
+## Join Data Frames
+
+A common variable (e.g., an ID) allows us to **join** two data frames.
+
+```{r eval=FALSE}
+store_transactions <- read_csv("store_transactions.csv")
+```
+
+```{r echo=FALSE}
+store_transactions <- read_csv(here::here("Data", "store_transactions.csv"))
+```
+
+---
+
+```{r}
+glimpse(store_transactions)
+```
+
+---
+
+A **left join** keeps all rows in the "left" data frame plus all columns from both data frames. A left join is a good "default" join to start with.
+
+```{r}
+left_join(customer_data, store_transactions, by = "customer_id")
+```
+
+---
+
+<center>
+![](../Figures/left_join.gif){width=500px}
+</center>
+
+---
+
+An **inner join** keeps rows that have matching IDs along with all columns from both data frames.
+
+```{r}
+inner_join(customer_data, store_transactions, by = "customer_id")
+```
+
+---
+
+<center>
+![](../Figures/inner_join.gif){width=500px}
+</center>
+
+## Consecutive Function Calls
+
+We typically want to perform many consecutive function calls. You might be tempted to do the following. **Don't do this!**
+
+```{r}
+crm_data_2 <- left_join(customer_data, store_transactions, by = "customer_id")
+crm_data_3 <- filter(crm_data_2, region == "West", feb_2005 == max(feb_2005))
+crm_data_4 <- mutate(crm_data_3, age = 2022 - birth_year)
+crm_data_5 <- select(crm_data_4, age, feb_2005)
+crm_data_6 <- arrange(crm_data_5, desc(age))
+crm_data_7 <- slice(crm_data_6, 1)
+
+crm_data_7
+```
+
+
+---
+
+This would be another way run the same code. **Don't do this either!**
+
+```{r}
+slice(
+  arrange(
+    select(
+      mutate(
+        filter(
+          left_join(
+            customer_data, store_transactions, by = "customer_id"), 
+          region == "West", feb_2005 == max(feb_2005)
+        ), 
+      age = 2022 - birth_year), 
+    age, feb_2005), 
+  desc(age)), 
+1)
+```
+
+## Consecutive Lines of Code
+
+Part of the common philosophy for the tidyverse is that:
+
+- Each function should do one specific thing well.
+- Each function should have a data frame as an input and a data frame as an output.
+
+This allows us to `|>` together functions in **consecutive lines of code** so that it is easier for humans to read and less error-prone.
+
+---
+
+```{r}
+filter(customer_data, credit == 850, state == "WY")
+```
+
+```{r}
+customer_data |> 
+  filter(.data = _, credit == 850, state == "WY")
+```
+
+---
+
+- So what does the `|>` do?
+- What's the deal with the indented line after the `|>`?
+- How is this different from the `%>%`?
+- Let's rewrite our terrible code using the `|>`.
+
+---
+
+Read `|>` as *then*. (If we need to use `<-`, we typically put it at the beginning.)
+
+```{r}
+customer_data |> 
+  left_join(store_transactions, by = "customer_id") |> 
+  filter(region == "West", feb_2005 == max(feb_2005)) |> 
+  mutate(age = 2023 - birth_year) |> 
+  select(age, feb_2005) |> 
+  arrange(desc(age)) |> 
+  slice(1)
+```
+
+# Quarto
+
+---
+
+![](../Figures/example-quarto.png)
+
+---
+
+## What is Quarto?
+
+> Quarto is an open-source scientific and technical publishing system built on Pandoc.
+
+You can write a report or presentation in Word, PowerPoint, etc.; then run code in an R script; then save output and visualizations; and then paste them in the report or the presentation...
+
+...or you can do it all at once in Quarto.
+
+## The Next Generation of R Markdown
+
+Quarto is **multilingual**, used with R, Python, Julia, and Observable from RStudio, VS Code, and Jupyter.
+
+- Natively incorporates much of the functionality developed for R Markdown
+- CLI
+- Lua filters
+- Development in terms of Lua filters
+
+---
+
+![](../Figures/rmarkdown.jpg)
+
+---
+
+![](../Figures/quarto.jpg)
+
+## Daily Work: Commit, Push, Pull
+
+Select the **right branch** first! Open up `PROJECT.qmd`.
+
+![](../Figures/daily-work.png){fig-align="center"}
+
+## Structure of a Document
+
+1. Content (text, figures, tables, diagrams, etc.)
+2. Code and output
+3. Metadata (format, appearance, etc.)
+
+## YAML
+
+The header is where (most of) the metadata lives in YAML.
+
+```
+---
+title: "Project Name"
+format: gfm
+---
+```
+
+While R Markdown can produce HTML documents, PowerPoint slides, etc., `format: gfm` (i.e., GitHub-flavored markdown) is what will produce the associated `.md` files that GitHub reads when rendered. When you make a presentation, it will be `format: revealjs` (see your repo's README for details).
+
+## Content Basics
+
+- Use `##` headings and `###` sub-headings.
+- Produce bullet points using -s.
+- Identify `functions` and `data` in the text with `s, *italics* with *s, and **bold** with **s.
+- RStudio has a visual editor, but there may be some weirdness switching back and forth.
+- Pay attention to required white space.
+- Render the document to produce the specified output.
+
+## Code Cells
+
+Code cells are language-specific.
+
+``` {{r}}
+#| echo: fenced
+transcripts <- read_rds(here::here("Data", "transcripts.rds")) |> 
+  tibble() |> 
+  separate(doc_id, into = c("gvkey", "call_date", "title"), sep = "_")
+```
+
+The hashpipe operator `#|` allows you to specify metadata using YAML for the code cell specifically.
+
+## Divs and Spans
+
+Divs and Spans are generic HTML/CSS elements that are used to format a document.
+
+- Divs are used for block-level formatting.
+- Spans are used for in-line formatting.
+
+---
+
+![](../Figures/fenced-div.jpg)
+
+---
+
+This is incredibly useful if you want to format an entire block of content, such as a paragraph. For example, using the `.callout-warning` class, I can quickly make this:
+
+::: {.callout-warning}
+Pay attention to this information!
+:::
+
+---
+
+![](../Figures/bracketed-span.jpg)
+
+## Milestone 1: Draft an Abstract
+
+Using your seminar repo and week 1's *branch*, modify `PROJECT.qmd` by drafting a paragraph-long "abstract," a description of the kind of project you'd like to work on. A few things to consider:
+
+- The project will be a kind of regression.
+- Clearly identify what the *outcome* of interest is.
+- Specify some of the possibly *explanatory* variables.
+- One of the explanatory variables needs to be a kind of *group* variable.
+
+---
+
+Render `PROJECT.qmd` into `PROJECT.md` once you're finished. Commit changes and push to GitHub. On GitHub, create a pull request and merge week 1's branch into `main` and delete the branch when finished.
+
+Get started on next week's presentation by picking and reading one paper from the shared PhD seminar syllabus.
+

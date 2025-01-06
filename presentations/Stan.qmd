@@ -1,0 +1,297 @@
+---
+title: "Stan"
+subtitle: "MKTG 585R Quantitative Marketing Pre-PhD Seminar"
+highlight-style: github
+format: 
+  revealjs:
+    theme: simple
+    scrollable: true
+    slide-number: true
+    self-contained: true
+execute:
+  echo: true
+  output: true
+  warning: true
+knitr:
+  opts_chunk:
+    fig.path: "../Figures/"
+---
+
+## Probabilistic Programming
+
+**Stan** is a probabilistic programming language that provides a general-purpose sampler using Hamiltonian Monte Carlo.
+
+- You specify your model in terms of probability functions.
+- Stan automatically compiles a C++ HMC sampler for your model.
+
+## Stan(islaw) Ulam
+
+When we use `ulam()`, {rethinking} is translating our model into Stan, which then compiles an HMC sampler in C++. We want to start writing in Stan code directly, and the `ulam()` translation will help us get there.
+
+Let's go back to the `foxes` data.
+
+```{r}
+#| echo: false
+#| warning: false
+# Load packages.
+library(rethinking)
+library(tidyverse)
+
+# Load and standardize the data.
+data(foxes)
+
+foxes <- foxes |> 
+  mutate(
+    avgfood = standardize(avgfood),
+    groupsize = standardize(groupsize),
+    weight = standardize(weight)
+  )
+
+# Now put the variables we need in a list.
+foxes_list <- list(
+  weight = foxes$weight,
+  area = foxes$area,
+  avgfood = foxes$avgfood,
+  groupsize = foxes$groupsize
+)
+```
+
+```{r}
+# Estimate the direct causal effect of avgfood on weight.
+fit <- ulam(
+  alist(
+    weight ~ dnorm(mu, sigma),
+    mu <- beta0 + beta_food * avgfood + beta_group * groupsize,
+    beta0 ~ dnorm(0, 0.2),
+    c(beta_food, beta_group) ~ dnorm(0, 0.5),
+    sigma ~ dexp(1)
+  ), 
+  data = foxes_list, # Specify the data list instead of a data frame.
+  chains = 4,        # Specify the number of chains.
+  cores = 4,         # Specify the number of cores to run in parallel.
+  log_lik = TRUE,    # To compute model fit via WAIC and PSIS.
+  cmdstan = TRUE     # Specify cmdstan = TRUE to use cmdstanr instead of rstan.
+)
+```
+
+---
+
+Let's see the Stan code!
+
+```{r}
+stancode(fit)
+```
+
+## Data Block
+
+Specify the data and indices. Note that "declaration of arrays by placing brackets after a variable name is deprecated."
+
+```{stan}
+#| eval: false
+#| output.var: data
+data {
+  int<lower = 1> N; // Number of observations.
+  int<lower = 1> I; // Number of covariates.
+  vector[N] y;      // Vector of observations.
+  matrix[N, I] X;   // Matrix of covariates.
+}
+```
+
+## Parameters Block
+
+Specify the parameters (i.e., everything that is unknown).
+
+```{stan}
+#| eval: false
+#| output.var: parameters
+parameters {
+  vector[I] beta;        // Vector of regression parameters.
+  real<lower = 0> sigma; // Variance of the likelihood.
+}
+```
+
+## Model Block
+
+Specify the *joint model*: the priors and the likelihood (i.e., observational model).
+
+```{stan}
+#| eval: false
+#| output.var: model
+model {
+  // Priors.
+  beta ~ normal(0, 5);
+  sigma ~ normal(0, 5);
+
+  // Likelihood.
+  for (n in 1:N) {
+    y[n] ~ normal(X[n,] * beta, sigma);
+  }
+}
+```
+
+## (Optional) Generated Quantities Block
+
+Specify anything you want to have *efficiently* computed along with the posterior draws. The most common generated quantity is the log-likelihood, which we'll need to compute WAIC and PSIS.
+
+```{stan}
+#| eval: false
+#| output.var: generated-quantities
+generated quantities {
+  // Compute the log-likelihood.
+  vector[N] log_lik;
+  for (n in 1:N) {
+    log_lik[n] = normal_lpdf(y[n] | X[n,] * beta, sigma);
+  }
+}
+```
+
+---
+
+We can use the `data` and `generated quantities` blocks to simulate data (kind of like `extract.prior()`).
+
+```{stan}
+#| eval: false
+#| output.var: sim-data
+data {
+  int<lower = 1> N;               // Number of observations.
+  int<lower = 1> I;               // Number of covariates.
+  matrix[N, I] X;                 // Matrix of covariates.
+  real<lower = 0> sigma;          // Variance of the likelihood.
+}
+
+generated quantities {
+  vector[N] y;                    // Vector of observations.
+  vector[I] beta;                 // Vector of regression parameters.
+
+  // Draw parameter values and generate data.
+  beta = normal_rng(0, sigma);
+  for (n in 1:N) {
+    y[n] = normal_rng(X[n,] * beta, sigma);
+  }
+}
+```
+
+## RStudio and Stan
+
+There is built-in support for Stan in RStudio.
+
+- Specify a `stan` code cell (requires `#| output.var: output-name`).
+- Create a `.stan` file (always leave an empty line at the end).
+
+For simple models, you might get away with `stan` code cells. If you do, you'll need to tell the `knitr` engine to use CmdStanR instead of RStan when working with `stan` code cells:
+
+```{r}
+#| eval: false
+library(cmdstanr)
+check_cmdstan_toolchain(fix = TRUE, quiet = TRUE)
+register_knitr_engine()
+```
+
+However...
+
+---
+
+<center>
+![](../Figures/sampling-wait.png)
+</center>
+
+## Stan and CmdStanR
+
+As your project's models get more complicated, we typically don't want to run them as part of rendering a Quarto document. Instead, save them as their own `.stan` files, run them from a separate R script, save the model output, and print the model and import the output as part of our Quarto document as needed. You may also need to **keep your computer awake long enough to run the model**.
+
+---
+
+See the [CmdStanR Vignette](https://mc-stan.org/cmdstanr/articles/cmdstanr.html) for more details. Imagine we're doing this in a separate R script from our Quarto document so it doesn't run every time we render.
+
+First we need to compile the model (if it isn't already).
+
+```{r}
+#| warning: false
+# Load packages.
+library(rethinking)
+library(cmdstanr)
+library(posterior)
+library(bayesplot)
+library(tidyverse)
+
+# Compile the model.
+stan_reg <- cmdstan_model(here::here("Code", "regression.stan"))
+```
+
+---
+
+In a departure from typical R syntax, we will use `$` notation to *call* functions. It works like this: `model_object$function()`. This strange syntax allows for consistency across CmdStan's variants, including CmdStanR and CmdStanPy.
+
+```{r}
+# Print the models like with stancode().
+stan_reg$print()
+```
+
+---
+
+```{r}
+# Structure the data to match the data block.
+data_list <- list(
+  N = nrow(foxes),
+  I = 3,
+  y = foxes$weight,
+  X = as.matrix(bind_cols(1, foxes$avgfood, foxes$groupsize))
+)
+
+# Fit the model by sampling from the posterior.
+fit <- stan_reg$sample(
+  data = data_list, 
+  seed = 123, 
+  chains = 4, 
+  parallel_chains = 4
+)
+```
+
+---
+
+```{r}
+# Look at model diagnostics.
+fit$cmdstan_diagnose()
+
+# Summarize model fit, including referencing specific parameters, like precis().
+fit$cmdstan_summary()
+fit$summary()
+
+# Extract draws for plotting.
+draws <- fit$draws()
+```
+
+---
+
+```{r}
+#| label: mcmc-hist
+# Plot using bayesplot.
+mcmc_hist(draws, pars = c("beta[1]", "beta[2]", "beta[3]"))
+
+# Compute PSIS mode fit (p_loo).
+loo(draws)
+
+# Save the model output.
+fit$save_object(file = here::here("Output", "foxes_fit.rds"))
+```
+
+Now when you want to load the model output into your report later, it's simple.
+
+```{r}
+#| eval: false
+fit <- readRDS(here::here("Output", "reedfrogs_fit.rds"))  # Base R.
+fit <- read_rds(here::here("Output", "reedfrogs_fit.rds")) # Tidyverse.
+```
+
+## 
+
+<center>
+![](../Figures/hiding-transitions.png)
+</center>
+
+## Removing the Scaffolding
+
+[Stan](https://mc-stan.org) has a number of awesome resources (including *Statistical Rethinking*): the [Stan User's Guide](https://mc-stan.org/docs/stan-users-guide/index.html) (plus the [Stan Reference Manual](https://mc-stan.org/docs/reference-manual/index.html) and the [Stan Functions Reference](https://mc-stan.org/docs/functions-reference/index.html)).
+
+There are a growing number of supporting packages: [{bayesplot}](https://mc-stan.org/bayesplot/index.html), [{posterior}](https://mc-stan.org/posterior/), [{loo}](https://mc-stan.org/loo/), [{ggdist}](https://mjskay.github.io/ggdist/index.html), [{tidybayes}](https://mjskay.github.io/tidybayes/), and [{brms}](https://paul-buerkner.github.io/brms/).
+

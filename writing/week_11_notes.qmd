@@ -1,0 +1,254 @@
+---
+title: "Multivariate Adaptive Priors"
+format: gfm
+knitr:
+  opts_chunk:
+    fig.path: "../Figures/"
+---
+
+## Chapter 14
+
+![](../Figures/varying_effects.png){width=700px}
+
+We've seen varying intercepts and varying slopes *separately*, but now we want to consider how to create a single *joint* population model over different parameter types.
+
+### Corelated Varying Effects
+
+To be able to pool across *parameter types* we need a joint adaptive prior. The geocentric version is a multivariate normal, the maximum entropy distribution if we only have assumptions about means, variance, and covariances. Please note that pooling information across parameter types is separate from the idea of having separate population models corresponding to different types of cluster or group variables. In other words, we could still have separate multivariate adaptive priors for different cluster or group variables.
+
+Simulation again comes to the rescue, helping us think through what the model is actually doing. Here's some of the simulated data for the cafes example.
+
+```{r}
+# Load packages.
+library(tidyverse)
+library(rethinking)
+
+alpha <- 3.5      # Population mean.
+beta <- -1        # Population difference in wait times.
+sigma_alpha <- 1  # Intercept standard deviation.
+sigma_beta <- 0.5 # Slope standard deviation.
+rho <- -0.7       # Correlation between parameter types.
+
+# Multivariate means.
+Mu <- c(alpha, beta)
+
+# Multivariate covariance decomposed into scale and correlation.
+sigmas <- c(sigma_alpha, sigma_beta)
+Rho <- matrix(c(1, rho, rho, 1), nrow = 2)
+
+# Matrix multiply to get the covariance matrix.
+Sigma <- diag(sigmas) %*% Rho %*% diag(sigmas)
+```
+
+Remember when we spoke about GLMs and saw how priors you might think are "uninformative" suddenly become very informative? This decomposition of the covariance matrix was foreshadowed: breaking a complicated, constrained parameter space into component pieces and then setting priors on those pieces.
+
+```{r}
+diag(sigmas) # Scale
+Rho          # %*% Correlation
+Sigma        # = Covariance
+```
+
+Now we can use this multivariate normal population model to simulate varying intercepts and slopes.
+
+```{r}
+# Simulated correlated varying effects.
+set.seed(42)
+N_cafes <- 20
+corr_effects <- MASS::mvrnorm(N_cafes, Mu, Sigma)
+
+corr_effects
+```
+
+Voila, a separate intercept and slope for each cafe produced from a single population distribution! Note that this is similar to how we would use the posterior to draw parameters and predict to new clusters/groups as discussed last week where now we have a multivariate normal with a covariance matrix since we're pooling across parameter types.
+
+We can plot these varying effects jointly and look at the contours of the bivariate normal.
+
+```{r week-11-bivariate-normal}
+# Plot correlated varying effects.
+alpha_cafe <- corr_effects[,1]
+beta_cafe <- corr_effects[,2]
+
+plot(
+  alpha_cafe, beta_cafe, 
+  col = rangi2, 
+  xlab = "Intercepts", ylab = "Slopes"
+)
+for (l in c(0.1, 0.3, 0.5, 0.8, 0.99)) {
+  lines(
+    ellipse::ellipse(Sigma, centre = Mu, level = l), 
+    col = col.alpha("black", 0.2)
+  )
+}
+```
+
+The tilt of the ellipse is the correlation. Finally, we can simulate data using the parameters simulated from the population model.
+
+```{r}
+N_visits <- 10                              # Number of visits.
+afternoon <- rep(0:1, N_visits * N_cafes/2) # Afternoon predictor.
+cafe_id <- rep(1:N_cafes, each = N_visits)  # Cafe IDs.
+
+# Linear model using the parameters for each cafe.
+mu <- alpha_cafe[cafe_id] + beta_cafe[cafe_id] * afternoon
+
+# Variation within cafes.
+sigma <- 0.5
+
+# Simulate data.
+wait <- rnorm(N_visits * N_cafes, mu, sigma)
+cafe_data <- list(cafe_id = cafe_id, afternoon = afternoon, wait = wait)
+
+str(cafe_data)
+```
+
+Now we come to the model.
+
+Since we have decomposed the covariance matrix into scale parameters (i.e., standard deviations) and a correlation matrix, we can set priors on each piece separately. The `LKJcorr(2)` is a weakly informative prior on `rho` that is skeptical of correlations at either extreme, -1 and 1. It is a regularizing prior for correlation matrices, where a parameter values greater than 2 is even more skeptical while `LKJcorr(1)` is a uniform prior across correlation matrices. In general, the larger the parameter values in the LKJ prior, the more skeptical (peaked at zero).
+
+We also now have a single population model (i.e., the upper-level model or adaptive regularizing prior) over *all* the random effect parameters in the likelihood, slopes and intercepts.
+
+```{r}
+# Fit the model.
+fit <- ulam(
+  alist(
+    wait ~ normal(mu, sigma),
+    mu <- alpha_cafe[cafe_id] + beta_cafe[cafe_id] * afternoon,
+    c(alpha_cafe, beta_cafe)[cafe_id] ~ multi_normal(c(alpha, beta), Rho, sigma_cafe),
+    alpha ~ normal(5, 2),
+    beta ~ normal(-1, 0.5),
+    sigma_cafe ~ exponential(1),
+    sigma ~ exponential(1),
+    Rho ~ lkj_corr(2)
+  ), 
+  data = cafe_data,
+  log_lik = TRUE,
+  chains = 4,
+  cores = 4,
+  cmdstan = TRUE
+)
+```
+
+That's it. Now instead of the associated scale parameter in the population model determining the pooling across parameters of a given type, we also have a correlation parameter in the population model determining the pooling across parameter types.
+
+Let's look at the Stan code directly.
+
+```{r}
+stancode(fit)
+```
+
+The biggest change here is that the covariance matrix is composed of matrix multiplication of `Rho` and `sigma_cafe`. There is a helper function in Stan called `quad_form_diag()` that does this for us. Note that if we wanted to get `Sigma` as a parameter with its own posterior distribution, we would need to include this `quad_form_diag()` resulting in `Sigma` in the `generated quantities` block.
+
+This translation of Stan code from `ulam()` is just a starting point. We can write better and cleaner code directly in Stan, especially as we implement a non-centered parameterization.
+
+### Non-Centered Parameterization Revisted
+
+When we have correlated varying effects, we typically want a non-centered parameterization, which is complicated by the fact that we now have a covariance matrix decomposed into scale parameters and a correlation matrix. However, the steps we've already detailed still apply, now complicated by the fact that we have a multivariate adaptive prior.
+
+![](../Figures/reparameterize-02.png)
+
+Assume that our population model is now `Beta ~ multi_normal(beta_bar, Sigma)` where `Beta` is a matrix composed of the separate vectors for the intercepts and slopes. The non-centered parameterization factors out the hyperparameters from the population model in favor of a two-step process:
+
+1. A standard normal population model `Delta ~ normal(0, 1)`.
+2. A linear model where `Beta` is replaced by `beta_bar + Delta * quad_form_diag(Omega, tau)`.
+
+This might seem complicated, but we can simplify things further by using the `transformed parameters` block. Not only will the `transformed paramaters` block allow us to include deterministic transformations of other parameters as part of the output as if they were included in the `generated quantities` block, we can also reference any transformed parameters in the `model` block itself. In other words, we need to only define `Sigma` and the non-centered `Beta` once!
+
+Here's the model above with a `transformed parameters` block for *both* the covariance matrix decomposition and a non-centered parameterization.
+
+```
+// Data block.
+data {
+  vector[200] wait;              // Vector of weight times (length hard-coded).
+  int afternoon[200];            // Vector of afternoon indicators (length hard-coded).
+  int cafe_id[200];              // Vector of cafe IDs (length hard-coded).
+}
+
+// Parameters block.
+parameters {
+  matrix[20, 2] Delta;           // Non-centered varying intercepts and slopes.
+  real<lower=0> sigma;           // Likelihood variance.
+  matrix[1, 2] Gamma;            // Population model averages.
+  vector<lower=0>[2] sigma_cafe; // Population model vector of scale hyperparameters.
+  corr_matrix[2] Rho;            // Population model correlation matrix hyperparameters.
+}
+
+// Transformed parameters block.
+transformed parameters {
+  cov_matrix[2] Sigma;           // Covariance matrix Sigma.
+  matrix[20, 2] Beta;            // Centered varying intercepts and slopes.
+  
+  // Recompose the covariance matrix Sigma.
+  Sigma = quad_form_diag(Rho, sigma_cafe);
+  
+  // Recompose the centered parameterization of Beta.
+  for (j in 1:20) {
+    Beta[j,] = Gamma + Delta[n,] * Sigma;
+  }
+}
+
+// Model block.
+model {
+  // Vector of mu for the link function.
+  vector[200] mu;
+  
+  // Priors.
+  Rho ~ lkj_corr(2);
+  sigma_cafe ~ exponential(1);
+  sigma ~ exponential(1);
+  Gamma[,1] ~ normal(5 , 2);
+  Gamma[,2] ~ normal(-1 , 0.5);
+  
+  // Non-centered population model.
+  for (j in 1:20) {
+    Delta[j,] ~ normal(0, 1);
+  }
+  
+  // Likelihood with the link function as a for loop.
+  for (i in 1:200) {
+    mu[i] = Beta[cafe_id[i], 1] + Beta[cafe_id[i], 2] * afternoon[i];
+  }
+  wait ~ normal(mu, sigma);
+}
+
+// Generated quantities block.
+generated quantities {
+  vector[200] log_lik; // Vector for computing the log-likelihood.
+  vector[200] mu;      // Vector of mu for the link function.
+  
+  // Computing the log-likelihood as a for loop (note = normal_lpdf()).
+  for (i in 1:200) {
+    mu[i] = Beta[cafe_id[i], 1] + Beta[cafe_id[i], 2] * afternoon[i];
+  }
+  for (i in 1:200) {
+    log_lik[i] = normal_lpdf(wait[i] | mu[i], sigma);
+  }
+}
+```
+
+## Updated Bayesian Workflow
+
+> "What researchers need is some unified theory of golem engineering, a set of principles for designing, building, and refining special-purpose statistical procedures."
+
+1. Data Story: Theoretical estimand and causal model.
+  + Begin with a **conceptual story**: Where do these data come from? What does the theory say?
+  + What is the causal model? Translate the data story into a **DAG**.
+2. Modeling: Translate the data story into a statistical model.
+  + Translate into probability statements (i.e., a model) by identifying variables, both *data* and *parameters*, and how they are distributed.
+  + Consider which variables should be included or excluded using a DAG and/or domain expertise, including where to condition on other variables and introduce *heterogeneity*.
+  + The resulting model is *generative*.
+3. Estimation: Design a statistical way to produce the estimate.
+  + This is your code as well as the sampling procedure, now coded for HMC using Stan.
+4. Test.
+  + Simulate data using the generative model and ensure that you can **recover the parameter values** you used in simulation.
+  + Perform an appropriate **prior predictive check** to evaluate the model.
+  + If the resulting distribution of simulated data isn't reasonable, iterate on your model.
+  + By using informative priors, tuned by using prior predictive checks, you get *regularization* for free.
+5. Analyze real data.
+  + Use MCMC to draws samples from the posterior.
+  + Pay attention to diagnostics, including `Rhat`, `n_eff`, and especially divergent transitions. Reparameterize as needed.
+  + Perform an appropriate **posterior predictive check** to evaluate the model.
+  + If the resulting distribution of simulated predictions isn't reasonable, iterate on your model.
+  + Predict outcomes by propagating the entire posterior uncertainty into predictions.
+  + Predict out-of-sample predictive fit and conduct *model comparison*.
+  + Go full circle and return to the DAG, manipulating the intervention variable of interest to produce a **counterfactual plot** to consider the causal implications of your analysis.
+

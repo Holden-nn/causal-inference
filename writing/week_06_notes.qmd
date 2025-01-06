@@ -1,0 +1,391 @@
+---
+title: "Regularization and MCMC"
+format: gfm
+knitr:
+  opts_chunk:
+    fig.path: "../Figures/"
+---
+
+## Chapter 7
+
+There is a trade-off between simple and complex models that is represented by the twin monsters: **underfitting**, or learning too little from the data, and **overfitting**, or learning too much from the data. Simple models fit and predict poorly, and are likely subject to the former, while complex models fit better and predict worse, which is an illustration of the latter.
+
+> "There is a third monster, the one you met in previous chapters -- confounding. In this chapter you’ll see that confounded models can in fact produce better predictions than models that correctly measure a causal relationship. The consequence of this is that we must decide whether we want to understand or predict. These are not the same goal, and different models are needed for each."
+
+- Prediction and (causal) inference are different objectives.
+- Informative priors are the equivalent of regularizing frequentist models using penalized likelihoods.
+- Model fit is best described as measuring the accuracy of out-of-sample predictions.
+
+### The Problem with Parameters
+
+"Regular" features in the data are useful to learn, as they generalize to the population or phenomenon of interest. "Irregular" features (e.g., outliers) are data-specific and learning too much from them leads to overfitting.
+
+> "Overfitting occurs when a model learns too much from the sample."
+
+Overfitting is learning too much from the data, paying too much attention to the irregular features in the data.
+
+> "Underfitting produces models that are inaccurate both within and out of sample."
+
+Underfitting is learning too little from the data, paying too little attention to the regular features in the data.
+
+![](../Figures/underfit_overfit.png)
+
+Regularization is all the rage accomplished in frequentist analysis using "penalized likelihoods." You've probably already seen this with the "Adjusted R-Squared" -- it's regular R-Squared that is penalized based on the number of parameters. Thus adding a parameter is only worthwhile when its variance explained actually overcomes the penalty.
+
+In a Bayesian framework we don't need to penalize our likelihoods -- we already have regularization built-in with priors. Here's the equivalence.
+
+![](../Figures/regularization_priors.png)
+
+> "So how do we navigate between the hydra of overfitting and the vortex of underfitting?"
+
+If we're comparing models, we need a criterion for model performance. Unfortunately, there isn't a single metric that is universally accepted. Rather, we will use a number of different measures of model performance to triangulate which models perform better and why.
+
+### Entropy and Accuracy
+
+Information theory provides one approach to this criterion.
+
+- **Entropy** (or, specifically, information entropy) describes the uncertainty present in a probability distribution, with a higher entropy suggesting more things are likely to happen and thus we have a "more spread out," "flatter," or "uniform" distribution. This has a precise mathematical definition.
+- **Divergence** is the additional uncertainty (i.e., entropy) induced by using probabilities from one distribution to describe another distribution. In other words, a lower divergence means better prediction of another distribution and thus less *distance* between the two distributions. Note that divergence is not symmetric, since it is conditioned on the distribution `p` used to describe or predict the other distribution `q`, where more entropy leads to less divergence (e.g., Earth to Mars produces less divergence while Mars to Earth produces more divergence).
+- However, we don't know the truth `p` that any given model `q` is diverging from. But we can compare models and see which one is closer to the target `p` since the pieces of the formula related to `p` cancel out in the comparison. This criterion is called **deviance** and is of particular interest when used to estimate model fit to a **testing** sample (out-of-sample prediction) rather than the **training** sample (in-sample prediction) used to fit the model.
+
+### Regularization
+
+Regularization (i.e., informative priors as illustrated above) fights against overfitting amd improves prediction. It represents being skeptical of the data we have.
+
+> "The root of overfitting is a model’s tendency to get overexcited by the training sample. When the priors are flat or nearly flat, the machine interprets this to mean that every parameter value is equally plausible. As a result, the model returns a posterior that encodes as much of the training sample -- as represented by the likelihood function -- as possible. One way to prevent a model from getting too excited by the training sample is to give it a skeptical prior. By 'skeptical,' I mean a prior that slows the rate of learning from the sample."
+
+Regularization is especially important when we don't have a lot of data and are thus leaning more heavily on the priors. This is yet another reason to be careful when setting priors and make use of prior predictive checks.
+
+### Predicting Predictive Accuracy
+
+> "But we do not have the out-of-sample, by definition, so how can we evaluate our models on it? There are two families of strategies: cross-validation and information criteria. These strategies try to guess how well models will perform, on average, in predicting new data."
+
+- **Cross-Validation**: Estimate (typically leave-one-out) cross-validation for out-of-sample predictions. We end up estimating this out-of-sample prediction because it's too computationally expensive to actually do the cross-validation.
+- **Information Criteria**: Estimate the relative out-of-sample deviance. We estimate this out-of-sample deviance because we don't have (or don't want to use) a testing sample.
+
+### Using Cross-Validation and Information Criteria
+
+> "Let’s review the original problem and the road so far. When there are several plausible models for the same set of observations, how should we compare the accuracy of these models? Following the fit to the sample is no good, because fit will always favor more complex models. Information divergence is the right measure of model accuracy, but even it will just lead us to choose more and more complex and wrong models. We need to somehow evaluate models out-of-sample. How can we do that? A meta-model of forecasting tells us two important things. First, flat priors produce bad predictions. Regularizing priors -- priors which are skeptical of extreme parameter values -- reduce fit to sample but tend to improve predictive accuracy. Second, we can get a useful guess of predictive accuracy with the criteria CV, PSIS, and WAIC. Regularizing priors and CV/PSIS/WAIC are complementary. Regularization reduces overfitting, and predictive criteria measure it."
+
+We should look at both PSIS and WAIC for estimating out-of-sample predictive fit. If there is disagreement, there is possibly a very informative data point/outlier or other issue we need to diagnose.
+
+Let's use `sim_happiness()` to simulate happiness data again, run some models, and make some model comparisons (not model *selection*) using both criteria.
+
+```{r}
+# Load packages.
+library(rethinking)
+library(tidyverse)
+
+# Set the seed so we get the same simulated values when we re-knit.
+set.seed(42)
+
+# Simulate the data using the sim_happiness function.
+data <- sim_happiness(seed = 1977, N_years = 1000) |>
+  filter(age > 17) |>                    # Only keep adults (18 and older).
+  mutate(A = (age - 18) / (65 - 18)) |>  # Recode age as 0 for 18 and 1 for 65.
+  mutate(mid = married + 1)              # Married status index.
+
+# Fit the models.
+fit_05 <- quap(
+  alist(
+    happiness ~ dnorm(mu, sigma),
+    mu <- a[mid] + bA * A,
+    a[mid] ~ dnorm(0, 1),
+    bA ~ dnorm(0, 2),
+    sigma ~ dexp(1)
+  ), 
+  data = data
+)
+
+fit_06 <- quap(
+  alist(
+    happiness ~ dnorm(mu, sigma),
+    mu <- a + bA * A,
+    a ~ dnorm(0, 1),
+    bA ~ dnorm(0, 2),
+    sigma ~ dexp(1)
+  ), 
+  data = data
+)
+```
+
+Now, let's use cross-validation and information criteria to estimate out-of-sample predictive fit.
+
+```{r}
+# WAIC.
+compare(fit_05, fit_06, func = WAIC)
+
+# PSIS.
+compare(fit_05, fit_06, func = PSIS)
+```
+
+- The first column contains the `WAIC` or `PSIS` values. Smaller values are better, with the models automatically ordered from best to worst fit.
+- The second column is `SE`, the standard error.
+- The third column is `dWAIC` or `dPSIS`, the difference between each model's `WAIC` or `PSIS` and the best model. That means it's zero for the best model and then the differences tell you how far each subsequent model is from the best model.
+- The fourth column is `dSE`, the difference between each model's `SE` and the best model.
+- The fifth column contains `pWAIC` or `pPSIS`, the prediction penalty or effective number of parameters in the model.
+- The sixth column is `weight`, which can be used to see how big the differences are across models as well as a way to create an ensemble of models.
+
+We can also plot this model comparison by taking the `SE` and `dSE` into account.
+
+```{r}
+#| label: week-06-model-comparison
+# WAIC.
+plot(compare(fit_05, fit_06, func = WAIC))
+
+# PSIS.
+plot(compare(fit_05, fit_06, func = PSIS))
+```
+
+The filled dots are in-sample fit, the open dots are out-of-sample fit. The bands represent certainty in a similar way to posterior inferences. The fact that the estimated fit for the models don't overlap suggests that we can clearly distinguish between the two models. However, this doesn't tell us anything about causality -- it tells us only about prediction. Hence the need to evaluate and compare models rather than use these measures to perform model selection.
+
+## Chapter 8
+
+### Conditioning
+
+> "Conditioning is one of the most important principles of statistical inference. Data, like the manatee scars and bomber damage, are conditional on how they get into our sample. Posterior distributions are conditional on the data. All model-based inference is conditional on the model. Every inference is conditional on something, whether we notice it or not."
+
+This is the key to building more sophisticated models. The linear model skeleton we've been assuming so far assumes that each explanatory variable has an independent relationship with the outcome variable. What we'd like to do is all that relationship to be conditional. Using **interactions** is one small step into that world. Using **hierarchical models** will be a giant leap.
+
+Let's start small.
+
+### Interactions
+
+Using the Africa example, the first interaction is with respect to the intercept only. In other words, the intercept is conditioned on whether or not the country is in Africa.
+
+```
+log(gdp_i) ∼ Normal(mu_i, sigma)
+mu_i = alpha[continent] + beta * (rugged - avg_rugged)
+alpha[continent] ∼ Normal(1, 0.1)
+beta ~ Normal(0, 0.3)
+sigma ∼ Exponential(1)
+```
+
+```{r}
+# Load packages.
+library(rethinking)
+library(tidyverse)
+
+# Load and wrangle the data.
+data(rugged)
+
+data <- rugged |>
+  # Filter for countries with GDP data.
+  drop_na(rgdppc_2000) |> 
+  # Log, standardize, and index.
+  mutate(
+    log_gdp = log(rgdppc_2000) / mean(log(rgdppc_2000)),
+    rugged = rugged / max(rugged),
+    continent = ifelse(cont_africa == 1, 1, 2)
+  )
+
+# Fit the model.
+fit_01 <- quap(
+  alist(
+    log_gdp ~ dnorm(mu, sigma),
+    mu <- alpha[continent] + beta * (rugged - 0.215),
+    alpha[continent] ~ dnorm(1, 0.1),
+    beta ~ dnorm(0, 0.3),
+    sigma ~ dexp(1)
+  ), 
+  data = data
+)
+
+# Summarize marginal posteriors.
+precis(fit_01, depth = 2)
+```
+
+This is better than an unconditional intercept, but what about the slope? Why shouldn't the slope also be conditioned on whether or not a country is in Africa?
+
+```
+log(gdp_i) ∼ Normal(mu_i, sigma)
+mu_i = alpha[continent] + beta[continent] * (rugged - avg_rugged)
+alpha[continent] ∼ Normal(1, 0.1)
+beta[continent] ~ Normal(0, 0.3)
+sigma ∼ Exponential(1)
+```
+
+```{r}
+# Fit the model.
+fit_02 <- quap(
+  alist(
+    log_gdp ~ dnorm(mu, sigma),
+    mu <- alpha[continent] + beta[continent] * (rugged - 0.215),
+    alpha[continent] ~ dnorm(1, 0.1),
+    beta[continent] ~ dnorm(0, 0.3),
+    sigma ~ dexp(1)
+  ), 
+  data = data
+)
+
+# Summarize marginal posteriors.
+precis(fit_02, depth = 2)
+```
+
+The slope is *reversed* for Africa (i.e., `continent == 2`).
+
+Let's compare these increasingly complex models.
+
+```{r}
+# WAIC.
+compare(fit_01, fit_02, func = WAIC)
+
+# LOO.
+compare(fit_01, fit_02, func = LOO)
+```
+
+The more complex model is clearly preferred (and perhaps overfit if all the weight goes to it even though the actual fit measures are similar). This illustrates how crucial conditioning likely is to our inference. Think about it this way: Conditioning allows for differences across groups (whether or not a country is Africa, in this example). What if those groups are people or segments? These differences allowed through conditioning, be it through interactions explicitly or a hierarchical model, are how we model **hetereogeneity**.
+
+Interactions are hard to interpret -- especially with continuous interactions -- which is the tradeoff to getting a more complex (and potentially complete) model. Once again, when in doubt, simulate (and plot). That said, this chapter is very much scaffolding that will fall away as we move on to better models.
+
+## Chapter 9
+
+> "Instead of having to lean on quadratic and other approximations of the shape of the posterior, now we'll be able to sample directly from the posterior without assuming a Gaussian, or any other, shape."
+
+As he said at the beginning of the class, using Markov chain Monte Carlo (MCMC) isn't required to do Bayesian inference, but it is definitely what enables us to do Bayesian inference for anything but a few toy problems. The details aren't essential to understand because we won't be writing our own samplers, and for the first time he glosses over an exhaustive explanation in lieu of intuition only before jumping to the good stuff, but as usual the more we understand the estimation procedure the better practitioners we'll be.
+
+One point to emphasize here: The *way* we estimate a model -- be it grid approximation, quadratic approximation, or MCMC -- is part of joint model the same way the prior and the likelihood are. It's not just a means to an end, it can matter for inference. Fortunately, MCMC has proven such a great general tool for sampling from the posterior that from here on out it will be our default.
+
+### Metropolis Algorithms
+
+Note that "efficiency" is about navigating the posterior distribution to return samples that give us a good approximation in less time. There is clearly a hierarchy of efficient algorithms here, just as grid approximation was dominated by quadratic approximation, quadratic approximation will be dominated by MCMC in all its forms.
+
+- **Gibbs Sampling**: Very efficient, but limited by requiring conjugate priors that result in known posterior distributions.
+- **Metropolis Algorithm**: Very inefficient, random-walk exploration of the posterior.
+- **Metropolis-Hastings Algorithm**: Generalized, more efficient version of the Metropolis Algorithm. (More efficient relative to Metropolis, at least.)
+
+### High-Dimensional Problems
+
+The reason these basic approaches to MCMC are so bad is that as we increase in the number of parameters (and thus the number of dimensions in our posterior) it becomes more and more difficult to find the *volume* of the posterior that is most informative. This isn't at the mode of the posterior -- there is a specific volume in the distribution that contains most of the probability and that is the are we need to effectively navigate and sample from. (And by we I mean our algorithm.) He calls this **concentration of measure**.
+
+### Hamiltonian Monte Carlo
+
+And now we jump *immediately* to Hamiltonian Monte Carlo (HMC), the latest and greatest of general-use MCMC algorithms. Intuitively, it is smarter than the random-based Metropolis algorithms and so more efficient yet at the same time more computationally intensive. If we're willing to work with an algorithm we haven't (and probably can't) code ourselves, that's a trade-off we can make and let's us ride the wave of newer and more complex problems becoming more accessible as computation improves and pushes the bounds on what modeling is possible.
+
+The key limitation is that the posterior must be differentiable and thus continuous. In other words, HMC *cannot estimate discrete parameters*. However, that's a limitation that we can work around in most instances by reparameterizing the model and, as we'll see, most discrete outcomes are really the result of thresholds on some underlying continuous process.
+
+HMC is all about quickly and efficiently navigating the posterior by using the same mathematics that describe orbits and other celestial mechanics. The best illustration I've seen of this is set the to [Harlem Shake](https://www.youtube.com/watch?v=Vv3f0QNWvWQ).
+
+Let's see HMC in action via `ulam()` to refit the same model we used before:
+
+```
+log(gdp_i) ∼ Normal(mu_i, sigma)
+mu_i = alpha[continent] + beta[continent] * (rugged - avg_rugged)
+alpha[continent] ∼ Normal(1, 0.1)
+beta[continent] ~ Normal(0, 0.3)
+sigma ∼ Exponential(1)
+```
+
+```{r}
+# First we need to put just the variables we need, already transformed, in a list.
+data_list <- list(
+  log_gdp = data$log_gdp,
+  rugged = data$rugged,
+  continent = data$continent
+)
+
+# Fit the model with ulam().
+fit_03 <- ulam(
+  alist(
+    log_gdp ~ dnorm(mu, sigma),
+    mu <- alpha[continent] + beta[continent] * (rugged - 0.215),
+    alpha[continent] ~ dnorm(1, 0.1),
+    beta[continent] ~ dnorm(0, 0.3),
+    sigma ~ dexp(1)
+  ), 
+  data = data_list, # Specify the data list instead of a data frame.
+  chains = 1,       # Specify the number of chains.
+  cmdstan = TRUE    # Specify cmdstan = TRUE to use cmdstanr instead of rstan.
+)
+```
+
+Here `ulam()` is translating the code into Stan (via rstan or cmdstanr) which compiles into C++ code to run efficiently. Eventually we'll want to write in Stan code directly, no translation required. We aren't there yet but you can take a peak beneath the hood (it isn't as scary as you'd think).
+
+```{r}
+# See the Stan code being written for you.
+stancode(fit_03)
+```
+
+We can summarize marginal posteriors as before.
+
+```{r}
+# Summarize marginal posteriors.
+precis(fit_03, depth = 2)
+```
+
+The number of chains will matter when we get to diagnostics, and we can easily run them in parallel by setting the `cores` argument equal to the number of `chains` (you probably have at least 4 cores).
+
+```{r}
+# Fit the model again with ulam().
+fit_04 <- ulam(
+  alist(
+    log_gdp ~ dnorm(mu, sigma),
+    mu <- alpha[continent] + beta[continent] * (rugged - 0.215),
+    alpha[continent] ~ dnorm(1, 0.1),
+    beta[continent] ~ dnorm(0, 0.3),
+    sigma ~ dexp(1)
+  ), 
+  data = data_list, # Specify the data list instead of a data frame.
+  chains = 4,       # Specify the number of chains.
+  cores = 4,        # Specify the number of cores to run in parallel.
+  cmdstan = TRUE    # Specify cmdstan = TRUE to use cmdstanr instead of rstan.
+)
+```
+
+It ran much faster the second time -- there weren't any changes to the code so it didn't need to recompile. We can see details on the model run with `show()`.
+
+```{r}
+# How did the model do?
+show(fit_04)
+```
+
+We can also visualize the chains by parameter using a **trace plot**. This is a nice first check on how the model is performing. And, I kid you not, the goal here is to see something that looks like a **fuzzy caterpillar**.
+
+```{r}
+#| label: week-06-trace-plots
+# Visualize the traceplots.
+traceplot(fit_04)
+```
+
+A fuzzy caterpillar means the chain is converging to a certain region (**stationarity**), has the zig-zagging that shows its exploring that region (**good mixing**), and all of the chains are overlapping in the same area (**convergence**).
+
+Finally, if we want to compute model fit via WAIC and PSIS, we need to include `log_lik = TRUE` in our `ulam()` function call.
+
+### Diagnostics
+
+> "The good news is that HMC, unlike Gibbs sampling and ordinary Metropolis, makes it easy to tell when the magic goes wrong. Its best feature is not how efficient it is. Rather the best feature is that it complains loudly when things aren't right."
+
+We've seen a few diagnostics already:
+
+- `n_eff` is the effective sample size, which we saw output with `precis()`. More is typically better and because HMC produces samples that aren't autocorrelated, this can be even larger than the actual number of data points.
+- `Rhat` is the convergence diagnostic, which we also saw output with `precis()`. You want this to be close to 1, otherwise you may need to run the chain longer to give it more time to converge. To get this we need `chains` > 1. Since most people have at least 4 cores, `chains = 4` and `cores = 4` for inference is a good default.
+
+But the granddaddy of all HMC diagnostics is **divergent transitions**. A divergent transition says something went wrong when sampling from the posterior. Like most computational problems, it's probably you. Divergent transitions are fantastic and a function of HMC being able to more efficiently sample from the posterior. It likely means we need to fix something in our model. In the chapter we see a repair by using informative (i.e., better) priors. It also might mean needing to reparameterize our model.
+
+## Updated Bayesian Workflow
+
+> "What researchers need is some unified theory of golem engineering, a set of principles for designing, building, and refining special-purpose statistical procedures."
+
+1. Data Story: Theoretical estimand and causal model.
+  + Begin with a **conceptual story**: Where do these data come from? What does the theory say?
+  + What is the causal model? Translate the data story into a **DAG**.
+2. Modeling: Translate the data story into a statistical model.
+  + Translate into probability statements (i.e., a model) by identifying variables, both *data* and *parameters*, and how they are distributed.
+  + Consider which variables should be included or excluded using a DAG and/or domain expertise, including where to condition on other variables and introduce *heterogeneity*.
+  + The resulting model is *generative*.
+3. Estimation: Design a statistical way to produce the estimate.
+  + This is your code as well as the sampling procedure, `ulam()`, which uses MCMC.
+4. Test.
+  + Simulate data using the generative model and ensure that you can **recover the parameter values** you used in simulation.
+    + Perform an appropriate **prior predictive check** to evaluate the model by running the model with `ulam()` (with `cmdstan = TRUE` to use CmdStanR as well as matching `cores` and `chains` to run in parallel) using `extract.prior()` to get draws from the prior and using `sim()` to simulate data and/or `link()` to simulate the linear model `mu` (if regression lines are informative). The form of the prior predictive check is conditioned on our model and application.
+  + If the resulting distribution of simulated data isn't reasonable, iterate on your model.
+  + By using informative priors, tuned by using prior predictive checks, you get *regularization* for free.
+5. Analyze real data.
+  + Use MCMC to draws samples from the posterior. Include `log_lik = TRUE` in `ulam()` so we can compute model fit via WAIC and PSIS.
+  + Pay attention to diagnostics, including `Rhat`, `n_eff`, and especially divergent transitions. Reparameterize as needed.
+  + Perform an appropriate **posterior predictive check** to evaluate the model by using `sim()` to predict data and/or `link()` to predict the linear model `mu` (if regression lines are informative), along with `PI()`. The form of the posterior predictive check is conditioned on our model and application and is likely a mirror of the prior predictive check.
+  + If the resulting distribution of simulated predictions isn't reasonable, iterate on your model.
+  + Predict outcomes using `sim()`, which propagates the entire posterior uncertainty into predictions.
+  + Predict out-of-sample predictive fit using `compare()` to get both PSIS and WAIC and conduct *model comparison*.
+  + Go full circle and return to the DAG, manipulating the intervention variable of interest to produce a **counterfactual plot** to consider the causal implications of your analysis.
+
