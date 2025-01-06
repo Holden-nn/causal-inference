@@ -12,6 +12,8 @@ format: gfm
 - Contact: [marc.dotson@usu.edu](mailto:marc.dotson@usu.edu)
 - Office Hours: Monday and Wednesday 3-5 pm, or by appointment, EBB 705 or [Zoom](https://usu-edu.zoom.us/j/9087876841?pwd=4Nl9sQnSAk3lXfwblJQduriCrzDYok.1)
 
+**TAs**: Ryan Cheney and Holden Nielson
+
 ## Overview
 
 This course focuses on the application of regression to inform decision-making, particularly using interpretable models to understand the effect of interventions on business outcomes. Students learn to model experimental and observational data and infer causality instead of correlation only.
