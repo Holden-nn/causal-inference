@@ -1,4 +1,0 @@
-Assignments
-================
-
-Assignments and solutions.

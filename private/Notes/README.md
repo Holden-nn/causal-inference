@@ -1,4 +1,0 @@
-Notes
-================
-
-My personal notes.
