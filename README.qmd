@@ -81,114 +81,103 @@ Please note that I reserve the right to change the syllabus, including the sched
 
 #### Week 1: Workflow
 
-- January 6: Syllabus
-- January 8: R/RStudio and Quarto
+- January 6: Python and Positron (Marc)
+- January 8: GitHub and Quarto (Marc)
 - *Probabilistic Machine Learning: An Introduction* Chapter 1
-- Milestone 1: Draft an Abstract
+- Milestone 1: Draft Project Idea
 
 #### Week 2: Probability
 
-- January 13: 
-- January 15: 
-- *Probabilistic Machine Learning: An Introduction* Chapter 1
+- January 13: Univariate Models
+- January 15: Multivariate Models
+- *Probabilistic Machine Learning: An Introduction* Chapters 2 and 3
 - Milestone 2: Narrate the Data Story
 
-#### Week 3: Statistics
+#### Week 3: Causality
 
-- January 20: 
-- January 22: 
-- *Probabilistic Machine Learning: An Introduction* Chapter 1
-- Milestone 3: Simulate Data and Recover Parameters
+- January 20: No Class (MLK, Jr. Day)
+- January 22: Structural Causal Models
+- *Probabilistic Machine Learning: Advanced Topics* Chapter 36.1-36.2
+- Milestone 3: Specify a DAG
 
-#### Week 4: Linear Models and Causal Inference
+#### Week 4: Backdoor Criteria
 
-- January 27: 
-- January 29: 
-- *Probabilistic Machine Learning: An Introduction* Chapter 1
-- Milestone 4: Summarize the Data and Fit a Bayesian Regression, Including Prior and Posterior Predictive Plots
+- January 27: Confounders and Colliders
+- January 29: Adjustments
+- *Probabilistic Machine Learning: Advanced Topics* Chapter 36.3-36.4
+- Milestone 4: Specify an Identification Strategy
 
-#### Week 5: Causes, Confounds, and Colliders
+#### Week 5: Statistics
 
-- February 3: 
-- February 5: 
-- *Probabilistic Machine Learning: An Introduction* Chapter 1
-- Milestone 5: Specify a DAG and Fit a Second Model, Including a Counterfactual Plot
+- February 3: Bayesian Statistics
+- February 5: Frequentist Statistics
+- *Probabilistic Machine Learning: An Introduction* Chapter 4
+- Milestone 5: Simulate Data and Recover Parameters
 
-#### Week 6: Regularization and MCMC
+#### Week 6: Decision Theory
 
-- February 10: 
-- February 12: 
-- *Probabilistic Machine Learning: An Introduction* Chapter 1
-- Milestone 6: Fit a Third Model Using MCMC, Including Model Comparisons
+- February 10: Bayesian Decision Theory
+- February 12: Frequentist Decision Theory
+- *Probabilistic Machine Learning: An Introduction* Chapter 5
+- Milestone 6: Justify a Loss Function
 
-#### Week 7: Stan
+#### Week 7: PyMC
 
-- February 17: 
-- February 19: 
-- *Probabilistic Machine Learning: An Introduction* Chapter 1
-- Milestone 7: Translate Model into Stan and Use {bayesplot}
+- February 17: No Class (President's Day)
+- February 19: Introduction to PyMC (Marc)
+- Milestone 7: Estimate Causal Effects
 
 #### Week 8: Intermediate Presentations
 
-- February 24: 
-- February 26: 
-- *Probabilistic Machine Learning: An Introduction* Chapter 1
-- Intermediate Presentation, Milestone 8: Iterate Through the Entire Workflow
+- February 24: Presentations
+- February 26: Presentations
+- Milestone 8: Intermediate Presentation Slides
 
-#### Week 9: Generalized Linear Models
+#### Week 9: Randomized Experiments
 
-- March 3: 
-- March 5: 
-- *Probabilistic Machine Learning: An Introduction* Chapter 1
-- Milestone 9: Add Complexity to the Model, Using a GLM as Needed
+- March 3: Experimental Control
+- March 5: Conjoint
+- Milestone 9: Run Conjoint Experiment
 
-#### Week 10: Multilevel Models
+#### Spring Break
 
-- March 10: Spring Break
-- March 12: Spring Break
-- *Probabilistic Machine Learning: An Introduction* Chapter 1
-- Milestone 10: Specify a Multilevel Model with Varying Effects
+- March 10: No Class (Spring Break)
+- March 12: No Class (Spring Break)
 
-#### Week 11: Multivariate Adaptive Priors
+#### Week 10: Heterogeneous Effects
 
-- March 17: 
-- March 19: 
-- *Probabilistic Machine Learning: An Introduction* Chapter 1
-- Milestone 11: Specify a Non-Centered Multilevel Model with Correlated Varying Effects
+- March 17: Choice Modeling
+- March 19: Estimating Hierarchical Models
+- Milestone 10: Estimate Heterogeneous Effects
 
-#### Week 12: Measurement and Missingness
+#### Week 11: Observational Data
 
-- March 24: 
-- March 26: 
-- *Probabilistic Machine Learning: An Introduction* Chapter 1
-- Milestone 12: Finalize the Multilevel Model
+- March 24: Approximating Experimental Control
+- March 26: Diff-in-Diff
+- Milestone 11: Implement Diff-in-Diff Strategy
 
-#### Week 13: Generalized Linear Madness
+#### Week 12: Synthetic Controls
 
-- March 31: 
-- April 2: 
-- *Probabilistic Machine Learning: An Introduction* Chapter 1
-- Milestone 13: Draft a Working Paper
+- March 31: Matching
+- April 2: Meta-Learning
+- Milestone 12: Implement Synthetic Controls
+
+#### Week 13: Causal Machine Learning
+
+- April 7: Doubly Robust Machine Learning
+- April 9: Other Methods
+- Milestone 13: Implement Causal Machine Learning
 
 #### Week 14: Final Presentations
 
-- April 7: 
-- April 9: 
-- *Probabilistic Machine Learning: An Introduction* Chapter 1
-- Milestone 14: Revise the Working Paper
+- April 14: Final Presentations
+- April 16: Final Presentations
+- Milestone 14: Final Presentations
 
-#### Week 15: Final Presentations
+#### Week 15: Next Steps
 
-- April 14: 
-- April 16: 
-- *Probabilistic Machine Learning: An Introduction* Chapter 1
-- Final Presentation, Milestone 15: Finalize the Working Paper
-
-#### Week 16: Final Presentations
-
-- April 21: 
-- *Probabilistic Machine Learning: An Introduction* Chapter 1
-- Final Presentation, Milestone 16: Finalize the Working Paper
+- April 21: What's Next for Causal Inference?
+- Milestone 15: Course Feedback
 
 ## HSB Differential Tuition
 
