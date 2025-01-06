@@ -1,0 +1,102 @@
+---
+title: "Advanced Regression for Causal Inference"
+author: "IS 5150/6110"
+title-slide-attributes:
+  data-background-color: "#486790"
+format: 
+  revealjs:
+    theme: marc.scss     # Modified simple theme.
+    slide-number: c/t    # Numbered slides current/total.
+    self-contained: true # Required to display ../figures/.
+---
+
+# Who am I?
+
+## 
+
+:::: {.columns .v-center}
+
+::: {.column width="40%"}
+![](../figures/dotson-family.png){fig-align="center"}
+:::
+
+::: {.column width="60%"}
+::: {.incremental}
+- Studied journalism, international relations, and statistics
+- Studied international political economy
+- Worked in marketing research
+- Studied quantitative marketing
+- Eight years teaching at BYU
+- Second semester teaching at Utah State
+- Rachel teaches high school English
+- Four kids aged 7 to 17
+- Once compared by a student to "a nerdy Spider-Man villain"
+:::
+:::
+
+::::
+
+## 
+
+![](../figures/venn01-01.png){fig-align="center"}
+
+## 
+
+![](../figures/venn01-02.png){fig-align="center"}
+
+## 
+
+![](../figures/venn01-03.png){fig-align="center"}
+
+## {visibility="uncounted"}
+
+![](../figures/venn01-15.png){fig-align="center"}
+
+## {visibility="uncounted"}
+
+![](../figures/venn01-19.png){fig-align="center"}
+
+## {visibility="uncounted"}
+
+![](../figures/venn03-03.png){fig-align="center"}
+
+## 
+
+![](../figures/venn03-04.png){fig-align="center"}
+
+# Who are you?
+
+## 
+
+1. What program are you in?
+2. Why are you interested in causal inference?
+3. What’s your dream job?
+4. What's one unique thing about you?
+
+# What is this class?
+
+## 
+
+:::: {.columns .v-center}
+
+::: {.column width="40%"}
+![](../figures/lse.png){fig-align="center"}
+:::
+
+::: {.column width="60%"}
+::: {.incremental}
+- Correlation isn’t causation
+- Lack of correlation isn't lack of causation
+-	All supervised models predict, some are interpretable, fewer still are causal
+-	A causal (not "casual") model is needed for intervention and counterfactuals
+-	Experimental and observational data
+-	Project-based to build a portfolio
+- Proposed a form of this class a year ago
+- Updated proposal with new data
+- Class size lets us run a seminar
+:::
+:::
+
+::::
+
+# [github.com/marcdotson/causal-inference](https://github.com/marcdotson/causal-inference) {background-color="#486790"}
