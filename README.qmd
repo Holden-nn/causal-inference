@@ -1,37 +1,26 @@
 ---
-title: "MKTG 585R Quantitative Marketing Pre-PhD Seminar"
+title: "IS 5150/6110 Advanced Regression for Causal Inference"
 format: gfm
 ---
 
-**Seminar**: Tuesday and Thursday 2-3:15 pm
+**Class**: Monday and Wednesday 1:30-2:45 pm
 
-- Room: 264 TNRB
+- Room: HH 120
 
 **Instructor**: Marc Dotson
 
-- Contact: [marc.dotson@byu.edu](mailto:marc.dotson@byu.edu)
-- Office Hours: Monday 1-3 pm and Wednesday 1-3 pm, or by appointment
-- Zoom Link: [byu.zoom.us/j/8134455359](https://byu.zoom.us/j/8134455359)
+- Contact: [marc.dotson@usu.edu](mailto:marc.dotson@usu.edu)
+- Office Hours: Monday and Wednesday 3-5 pm, or by appointment, EBB 705 or [Zoom](https://usu-edu.zoom.us/j/9087876841?pwd=4Nl9sQnSAk3lXfwblJQduriCrzDYok.1)
 
 ## Overview
 
-This seminar seeks to accomplish two related goals. First, it provides advanced training for students interested in marketing analytics. Second, it equips students with skills they need to be successful as PhD students in quantitative marketing. In short, students interested in advancing their quantitative research skills will find the seminar useful whether or not they are currently interested in pursuing a PhD in quantitative marketing.
+This course focuses on the application of regression to inform decision-making, particularly using interpretable models to understand the effect of interventions on business outcomes. Students learn to model experimental and observational data and infer causality instead of correlation only. Additional coursework is required for those enrolled in the graduate-level course. Prerequisites/Restrictions: DATA 5600 Dual listed as: IS 6110
 
-Unlike a regular course, a seminar is discussion rather than lecture-based. Learning happens primarily outside of the seminar. The burden is on the students to do the required work and come prepared with questions and insights to spur discussions.
+By the end of this course, you will be able to:
 
-### Seminar Purpose
-
-Students will demonstrate mastery of the foundations of quantitative research by building up to and completing their own research project.
-
-### Learning Outcomes
-
-Having successfully completed the seminar, students will be able to do the following.
-
-- Program in R and Stan.
-- Use version control and collaborate with Git and GitHub.
-- Focus on doing reproducible research with Quarto.
-- Use Bayesian statistics for inference and prediction.
-- Understand the demands and opportunities of getting a PhD.
+1. Specify identification strategies for estimating causal effects.
+2. Design effective experiments and apply appropriate methods for experimental data.
+3. Model observational data and infer causality using a variety of techniques.
 
 ## Tools and Materials
 
