@@ -68,7 +68,7 @@ format:
 
 ## 
 
-1. What program are you in?
+1. What program are you in? (Are you taking this course as a capstone?)
 2. Why are you interested in causal inference?
 3. What’s your dream job?
 4. What's one unique thing about you?
