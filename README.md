@@ -12,7 +12,7 @@
   or
   [Zoom](https://usu-edu.zoom.us/j/9087876841?pwd=4Nl9sQnSAk3lXfwblJQduriCrzDYok.1)
 
-**TAs**: Ryan Cheney and Holden Nielson
+**TA**: Holden Nielson
 
 ## Overview
 
