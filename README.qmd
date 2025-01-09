@@ -14,6 +14,9 @@ format: gfm
 
 **TA**: Holden Nielson
 
+- Contact: [a02324537@usu.edu](mailto:a02324537@usu.edu)
+- Office Hours: By appointment
+
 ## Overview
 
 This course focuses on the application of regression to inform decision-making, particularly using interpretable models to understand the effect of interventions on business outcomes. Students learn to model experimental and observational data and infer causality instead of correlation only.
@@ -90,8 +93,8 @@ Please note that I reserve the right to change the syllabus, including the sched
 
 #### Week 2: Probability
 
-- January 13: Univariate Models
-- January 15: Multivariate Models
+- January 13: Univariate Models (Rebecca)
+- January 15: Multivariate Models (Gabby)
 - *Probabilistic Machine Learning: An Introduction* Chapters 2 and 3
 - Milestone 2: Narrate the Data Story
 

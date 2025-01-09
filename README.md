@@ -14,6 +14,9 @@
 
 **TA**: Holden Nielson
 
+- Contact: <a02324537@usu.edu>
+- Office Hours: By appointment
+
 ## Overview
 
 This course focuses on the application of regression to inform
@@ -121,8 +124,8 @@ as it effects any deadlines.
 
 #### Week 2: Probability
 
-- January 13: Univariate Models
-- January 15: Multivariate Models
+- January 13: Univariate Models (Rebecca)
+- January 15: Multivariate Models (Gabby)
 - *Probabilistic Machine Learning: An Introduction* Chapters 2 and 3
 - Milestone 2: Narrate the Data Story
 
