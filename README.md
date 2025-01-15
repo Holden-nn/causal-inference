@@ -125,7 +125,7 @@ as it effects any deadlines.
 #### Week 2: Probability
 
 - January 13: Univariate Models (Rebecca)
-- January 15: Multivariate Models (Gabby)
+- January 15: Multivariate Models (Marc)
 - *Probabilistic Machine Learning: An Introduction* Chapters 2 and 3
 - Milestone 2: Narrate the Data Story
 

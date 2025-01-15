@@ -1,0 +1,285 @@
+---
+title: "Multivariate Models"
+author: "IS 5150/6110"
+title-slide-attributes:
+  data-background-color: "#486790"
+format: 
+  revealjs:
+    theme: marc.scss     # Modified simple theme.
+    slide-number: c/t    # Numbered slides current/total.
+    self-contained: true # Required to display ../figures/.
+---
+
+# Project Update
+
+## 
+
+::: {.incremental .v-center}
+- Add me and Holden as collaborators on each of your project repositories
+- Create the PR for that week's branch to submit the associated milestone
+- Once possible changes have been made to the milestone, we will merge
+- Access to data should be a serious focus at this point in the semester
+- However, you *could* use experimental or observational data
+:::
+
+# Probabilistic Perspective
+
+##
+
+::: {.incremental .v-center}
+- Using probability to **quantify uncertainty** about what we know
+- All unknowns are **random variables** (i.e., can have probability distributions)
+- We have **joint distributions** $p(x, y)$ and **marginal distributions** $p(x)$
+- Lots of **moments** or summary statistics, but they have limited information
+- Bayes' rule provides a principled way to update what we know
+:::
+
+## 
+
+::: {.v-center}
+
+$$
+\LARGE{p(\theta | X) \propto p(X | \theta) \ p(\theta)}
+$$
+:::
+
+## {visibility="uncounted"}
+
+::: {.v-center}
+$$
+\LARGE{\text{posterior} \propto \text{likelihood} \times \text{prior}}
+$$
+:::
+
+## {auto-animate=true}
+
+:::: {.columns .v-center}
+
+::: {.column width="100%"}
+![](../figures/frequentist-panel.png){fig-align="center"}
+:::
+
+::::
+
+## {auto-animate=true}
+
+:::: {.columns .v-center}
+
+::: {.column width="100%"}
+![](../figures/bayesian-triptych.png){fig-align="center"}
+:::
+
+::::
+
+## 
+
+:::: {.columns .v-center}
+::: {.column width="100%"}
+```{r}
+#| echo: false
+#| warning: false
+library(tidyverse)
+
+# 1. Define the grid.
+grid_appr <- tibble(theta = seq(from = 0, to = 1, length.out = 1000)) |> 
+  # 2. Set the prior.
+  mutate(prior = rep(1, 1000)) |> 
+  # 3. Compute the likelihood.
+  mutate(likelihood = dbinom(6, size = 9, prob = theta)) |> 
+  # 4. Compute the unstandardized posterior.
+  mutate(unstd_posterior = likelihood * prior) |> 
+  # 5. Standardize the posterior.
+  mutate(posterior = unstd_posterior / sum(unstd_posterior))
+
+# 6. Sample from the posterior.
+grid_appr_sample <- grid_appr %>% 
+  slice_sample(n = 10000, weight_by = posterior, replace = TRUE)
+
+grid_appr_sample |> 
+  ggplot(aes(x = theta, y = posterior)) +
+  geom_line() +
+  geom_area(fill = "#3869a5") +
+  theme_minimal()
+```
+:::
+::::
+
+##
+
+:::: {.columns .v-center}
+::: {.column width="100%"}
+```{r}
+#| echo: false
+#| warning: false
+
+# Mean of theta.
+grid_appr_sample %>% 
+  ggplot(aes(x = theta, y = posterior)) +
+  geom_line() +
+  geom_area(fill = "#3869a5") +
+  geom_vline(xintercept = mean(grid_appr_sample$theta), color = "#7aafde") +
+  theme_minimal()
+```
+:::
+::::
+
+##
+
+:::: {.columns .v-center}
+::: {.column width="100%"}
+```{r}
+#| echo: false
+#| warning: false
+
+# Posterior probability where 0.5 < theta < 0.75.
+grid_appr_sample %>% 
+  ggplot(aes(x = theta, y = posterior)) +
+  geom_line() +
+  geom_area(fill = "#3869a5") +
+  geom_area(data = filter(grid_appr_sample, theta > 0.5 & theta < 0.75), fill = "#7aafde") +
+  theme_minimal()
+```
+:::
+::::
+
+## 
+
+:::: {.columns .v-center}
+
+::: {.column width="50%"}
+::: {.fragment .h-center}
+### Frequentist
+:::
+
+$$
+\theta = \text{some value} \\
+X \sim \text{some distribution}
+$$
+:::
+
+::: {.column width="50%"}
+::: {.fragment .h-center}
+### Bayesian
+:::
+
+$$
+\theta \sim \text{some distribution} \\
+X = \text{some value}
+$$
+:::
+
+::::
+
+## {visibility="uncounted"}
+
+:::: {.columns .v-center}
+
+::: {.column width="50%"}
+### Frequentist {.h-center}
+
+$$
+\theta = \text{some } \color{red}{\text{unknown}} \text{ value} \\
+X \sim \text{some distribution}
+$$
+:::
+
+::: {.column width="50%"}
+### Bayesian {.h-center}
+
+$$
+\theta \sim \text{some distribution} \\
+X = \text{some } \color{red}{\text{known}} \text{ value}
+$$
+:::
+
+::::
+
+# Multivariate Models
+
+## 
+
+![](../figures/keep-calm.png){fig-align="center"}
+
+# What questions do you have?
+
+## 
+
+::: {.incremental .v-center}
+- $x$ scalars
+- $\mathbf{x}$ vectors (i.e., *column* vectors)
+- $\mathbf{X}$ matrices, composed of *rows* and *columns*
+- Bonus: Python apparently fills matrices by *rows*
+:::
+
+## 
+
+:::: {.columns .v-center}
+::: {.column width="100%"}
+Covariance is a multivariate generalization of variance. Correlation is a normalized covariance (i.e., scaled to $[-1, 1]$).
+
+$$
+\text{Cov}[\mathbf{x}] = \mathbf{\Sigma} = 
+\begin{bmatrix}
+\text{Var}[X_1] & \text{Cov}[X_1, X_2] & \text{Cov}[X_1, X_3] \\
+\text{Cov}[X_2, X_1] & \text{Var}[X_2] & \text{Cov}[X_2, X_3] \\
+\text{Cov}[X_3, X_1] & \text{Cov}[X_3, X_2] & \text{Var}[X_3] 
+\end{bmatrix}
+$$
+:::
+::::
+
+## 
+
+:::: {.columns .v-center}
+::: {.column width="100%"}
+![](../figures/shrinkage.png){fig-align="center"}
+:::
+::::
+
+
+## 
+
+:::: {.columns .v-center}
+::: {.column width="100%"}
+Multivariate models are generalization of their univariate counterparts. Why do we need the added complexity? What is a **generalized linear model**?
+
+::: {.incremental}
+- Multivariate Gaussian/Normal (including Bivariate)
+- Exponential family (maximum entropy models)
+- Mixture models (oh my!)
+:::
+
+:::
+::::
+
+## 
+
+:::: {.columns .v-center}
+::: {.column width="100%"}
+We can express any probabilistic model (i.e., joint distribution) as a **graph** where **conditional independence** and **causal structure** is encoded.
+
+::: {.incremental}
+- Empty nodes are observed
+- Shaded nodes are unobserved
+- Edges are the lines connecting nodes
+- Arrows show the flow of information (causality)
+- We are especially interested in **directed acyclic graphs**
+:::
+:::
+
+:::
+::::
+
+## 
+
+![](../figures/venn01-01.png){fig-align="center"}
+
+## 
+
+![](../figures/venn01-02.png){fig-align="center"}
+
+## 
+
+![](../figures/venn01-03.png){fig-align="center"}
+
+# "It's only confusing because you're paying attention." -Richard McElreath {background-color="#486790"}
