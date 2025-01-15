@@ -132,7 +132,7 @@ as it effects any deadlines.
 #### Week 3: Causality
 
 - January 20: No Class (MLK, Jr. Day)
-- January 22: Structural Causal Models
+- January 22: Structural Causal Models (Abby)
 - *Probabilistic Machine Learning: Advanced Topics* Chapter 36.1-36.2
 - Milestone 3: Specify a DAG
 
