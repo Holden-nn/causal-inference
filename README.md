@@ -136,15 +136,16 @@ as it effects any deadlines.
 - *Probabilistic Machine Learning: Advanced Topics* Chapter 36.1-36.2
 - Milestone 3: Specify a DAG
 
-#### Week 4: Backdoor Criteria
+#### Week 4: Confounds and Controls
 
-- January 27: Confounders and Colliders
-- January 29: Adjustments
-- *Probabilistic Machine Learning: Advanced Topics* Chapter 36.3-36.4,
-  [Elemental
-  Confounds](https://www.youtube.com/watch?v=mBEA7PKDmiY&list=PLDcUM9US4XdPz-KxHM4XHt7uUVGWWVSus&index=6),
-  and [Good and Bad
+- January 27: [Elemental
+  Confounds](https://www.youtube.com/watch?v=mBEA7PKDmiY&list=PLDcUM9US4XdPz-KxHM4XHt7uUVGWWVSus&index=6)
+  (Alesandro)
+- January 29: [Good and Bad
   Controls](https://www.youtube.com/watch?v=uanZZLlzKHw&list=PLDcUM9US4XdPz-KxHM4XHt7uUVGWWVSus&index=7)
+  (Jonah)
+- *Probabilistic Machine Learning: Advanced Topics* Chapter 36.3-36.4, ,
+  and
 - Milestone 4: Specify an Identification Strategy
 
 #### Week 5: Statistics
