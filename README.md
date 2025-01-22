@@ -140,7 +140,11 @@ as it effects any deadlines.
 
 - January 27: Confounders and Colliders
 - January 29: Adjustments
-- *Probabilistic Machine Learning: Advanced Topics* Chapter 36.3-36.4
+- *Probabilistic Machine Learning: Advanced Topics* Chapter 36.3-36.4,
+  [Elemental
+  Confounds](https://www.youtube.com/watch?v=mBEA7PKDmiY&list=PLDcUM9US4XdPz-KxHM4XHt7uUVGWWVSus&index=6),
+  and [Good and Bad
+  Controls](https://www.youtube.com/watch?v=uanZZLlzKHw&list=PLDcUM9US4XdPz-KxHM4XHt7uUVGWWVSus&index=7)
 - Milestone 4: Specify an Identification Strategy
 
 #### Week 5: Statistics
