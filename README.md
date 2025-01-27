@@ -144,8 +144,7 @@ as it effects any deadlines.
 - January 29: [Good and Bad
   Controls](https://www.youtube.com/watch?v=uanZZLlzKHw&list=PLDcUM9US4XdPz-KxHM4XHt7uUVGWWVSus&index=7)
   (Jonah)
-- *Probabilistic Machine Learning: Advanced Topics* Chapter 36.3-36.4, ,
-  and
+- *Probabilistic Machine Learning: Advanced Topics* Chapter 36.3-36.4
 - Milestone 4: Specify an Identification Strategy
 
 #### Week 5: Statistics
