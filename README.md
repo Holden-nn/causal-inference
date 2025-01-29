@@ -149,8 +149,8 @@ as it effects any deadlines.
 
 #### Week 5: Statistics
 
-- February 3: Bayesian Statistics
-- February 5: Frequentist Statistics
+- February 3: Bayesian Statistics (Gabby)
+- February 5: Frequentist Statistics (Rebecca)
 - *Probabilistic Machine Learning: An Introduction* Chapter 4
 - Milestone 5: Simulate Data and Recover Parameters
 
