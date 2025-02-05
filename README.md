@@ -156,8 +156,8 @@ as it effects any deadlines.
 
 #### Week 6: Decision Theory
 
-- February 10: Bayesian Decision Theory
-- February 12: Frequentist Decision Theory
+- February 10: Bayesian Decision Theory (Abby)
+- February 12: Frequentist Decision Theory (Alesandro)
 - *Probabilistic Machine Learning: An Introduction* Chapter 5
 - Milestone 6: Justify a Loss Function
 
