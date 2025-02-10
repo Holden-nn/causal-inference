@@ -159,7 +159,7 @@ as it effects any deadlines.
 - February 10: Bayesian Decision Theory (Abby)
 - February 12: Frequentist Decision Theory (Alesandro)
 - *Probabilistic Machine Learning: An Introduction* Chapter 5
-- Milestone 6: Justify a Loss Function
+- Milestone 6: Conduct Exploratory Data Analysis
 
 #### Week 7: PyMC
 
