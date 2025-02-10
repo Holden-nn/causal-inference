@@ -37,6 +37,52 @@ Here’s my adjustment set:
 
 ## Simulate Data and Recover Parameters
 
+``` python
+import numpy as np
+import polars as pl
+import seaborn as sns
+from sklearn.linear_model import LinearRegression
+
+np.random.seed(42)
+
+# Set the parameter values.
+beta0 = 3
+beta1 = 7
+n = 100
+
+sim_data = (
+    # Simulate predictors using appropriate np.random distributions.
+    pl.DataFrame({
+        'x': np.random.uniform(0, 7, size = n)
+    })
+    # Use predictors and parameter values to simulate the outome.
+    .with_columns([
+        (beta0 + beta1 * pl.col('x') + np.random.normal(0, 3, size = n)).alias('y')
+    ])
+)
+
+sim_data
+
+# Specify the X matrix and y vector.
+X = sim_data[['x']]
+y = sim_data['y']
+
+# Create a linear regression model.
+model = LinearRegression(fit_intercept=True)
+
+# Train the model.
+model.fit(X, y)
+
+# Print the coefficients
+print(f'Intercept: {model.intercept_}')
+print(f'Slope: {model.coef_[0]}')
+
+# Have you recovered the parameters?
+```
+
+    Intercept: 3.6452884726402353
+    Slope: 6.802954331232987
+
 Lorem ipsum odor amet, consectetuer adipiscing elit. Sagittis interdum
 fringilla sagittis platea eget dictum sodales non. Nec arcu porta felis
 eros sem accumsan? Sit quis ridiculus, ligula dictum ex luctus.
