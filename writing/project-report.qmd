@@ -1,0 +1,38 @@
+---
+title: "My Project Report"
+execute:
+  output-dir: "../figures/"
+  cache: false
+format: gfm
+---
+
+## Data Story
+
+Lorem ipsum odor amet, consectetuer adipiscing elit. Sit eu class placerat erat nostra. Dictum sed nibh amet vel sollicitudin curabitur himenaeos ante. Gravida risus conubia per ultrices ligula nascetur. Nam fusce amet ad ante sed aenean! Quis lacus vulputate bibendum facilisi condimentum sit.
+
+Mauris volutpat iaculis enim nam taciti est ipsum dui. Eu facilisi erat euismod per nulla lacus. Neque duis bibendum conubia class fusce fames. Ultrices ultricies in hac ornare platea. Aliquam sociosqu habitant conubia porta sagittis sociosqu aenean? Nunc eget accumsan nunc lacus, urna lacus? Est quisque quis iaculis phasellus nisl. Purus nisi cursus convallis, tristique mauris sagittis nibh.
+
+## DAG
+
+```{mermaid}
+flowchart LR
+  A(A) --> B(B)
+  A --> C(C)
+  C --> B
+  D(D) --> Y
+  B --> Y{Y}
+```
+
+## Identification Strategy
+
+Here's my adjustment set:
+
+- Lorem ipsum odor amet, consectetuer adipiscing elit.
+- Euismod a inceptos torquent laoreet dapibus quis quam laoreet.
+- Magnis lacinia ante aliquam posuere parturient lobortis.
+
+## Simulate Data and Recover Parameters
+
+Lorem ipsum odor amet, consectetuer adipiscing elit. Sagittis interdum fringilla sagittis platea eget dictum sodales non. Nec arcu porta felis eros sem accumsan? Sit quis ridiculus, ligula dictum ex luctus.
+
+## Exploratory Data Analysis
