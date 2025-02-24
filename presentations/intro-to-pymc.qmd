@@ -1,0 +1,159 @@
+---
+title: "Introduction to PyMC"
+author: "IS 5150/6110"
+title-slide-attributes:
+  data-background-color: "#486790"
+format: 
+  revealjs:
+    theme: marc.scss     # Modified simple theme.
+    slide-number: c/t    # Numbered slides current/total.
+    self-contained: true # Required to display ../figures/.
+highlight-style: github
+execute:
+  eval: false
+  echo: true
+---
+
+# Probabilistic Inference
+
+## 
+
+::: {.v-center}
+
+$$
+\LARGE{p(\theta | X) \propto p(X | \theta) \ p(\theta)}
+$$
+:::
+
+# Probabilistic Programming
+
+## 
+
+:::: {.columns .v-center}
+::: {.column width="100%"}
+Probabilistic programming languages (PPLs) provide for direct computational specification of probability distributions and inference. They mean the real computational burden of Bayesian statistics is obviated.
+
+::: {.incremental}
+1. You specify your model in terms of probability functions.
+2. The PPL automatically compiles a sampler (or  approximation) for your model.
+:::
+
+::: {.fragment}
+Most samplers are some form of Markov chain Monte Carlo---with Hamiltonian Monte Carlo currently best in class. We'll be using PyMC.
+:::
+
+:::
+::::
+
+## 
+
+```{python}
+import numpy as np
+import polars as pl
+import pymc as pm
+import arviz as az
+
+np.random.seed(42)
+
+# Set the parameter values.
+beta0 = 3
+beta1 = 7
+sigma = 3
+n = 100
+
+x = np.random.uniform(0, 7, size = n)
+y = beta0 + beta1 * x + np.random.normal(size = n) * sigma
+```
+
+##
+
+```{python}
+# Create a Model object.
+basic_model = pm.Model()
+
+# Specify the model.
+with basic_model:
+  # Prior.
+  beta = pm.Normal('beta', mu = 0, sigma = 10, shape = 2)
+  sigma = pm.HalfNormal('sigma', sigma = 1)
+
+  # Likelihood.
+  mu = beta[0] + beta[1] * x
+  y_obs = pm.Normal('y_obs', mu = mu, sigma = sigma, observed = y)
+
+# Create an InferenceData object.
+with basic_model:
+  # Draw 1000 posterior samples.
+  idata = pm.sample()
+```
+
+##
+
+:::: {.columns .v-center}
+::: {.column width="100%"}
+![](../figures/sampling-wait.png){fig-align="center"}
+:::
+::::
+
+## 
+
+```{python}
+# Have we recovered the parameters?
+az.summary(idata, round_to = 2)
+
+# Visualize marginal posteriors.
+az.plot_trace(idata, combined = True)
+```
+
+## 
+
+:::: {.columns .v-center}
+::: {.column width="100%"}
+![](../figures/intro-to-pymc_plot-01.png){fig-align="center"}
+:::
+::::
+
+## 
+
+:::: {.columns .v-center}
+::: {.column width="100%"}
+![](../figures/fox.png){fig-align="center"}
+:::
+::::
+
+## 
+
+```{python}
+
+```
+
+
+
+```{r}
+# Estimate the direct causal effect of avgfood on weight.
+fit <- ulam(
+  alist(
+    weight ~ dnorm(mu, sigma),
+    mu <- beta0 + beta_food * avgfood + beta_group * groupsize,
+    beta0 ~ dnorm(0, 0.2),
+    c(beta_food, beta_group) ~ dnorm(0, 0.5),
+    sigma ~ dexp(1)
+  ), 
+  data = foxes_list, # Specify the data list instead of a data frame.
+  chains = 4,        # Specify the number of chains.
+  cores = 4,         # Specify the number of cores to run in parallel.
+  log_lik = TRUE,    # To compute model fit via WAIC and PSIS.
+  cmdstan = TRUE     # Specify cmdstan = TRUE to use cmdstanr instead of rstan.
+)
+```
+
+
+
+
+
+
+
+
+<!-- ![](../figures/hiding-transitions.png) -->
+
+
