@@ -164,13 +164,13 @@ as it effects any deadlines.
 #### Week 7: PyMC
 
 - February 17: No Class (President’s Day)
-- February 19: Introduction to PyMC (Marc)
+- February 19: Class Canceled
+
+#### Week 8: PyMC and Presentations
+
+- February 24: Introduction to PyMC (Marc)
+- February 26: Intermediate Presentations
 - Milestone 7: Estimate Causal Effects
-
-#### Week 8: Intermediate Presentations
-
-- February 24: Presentations
-- February 26: Presentations
 - Milestone 8: Intermediate Presentation Slides
 
 #### Week 9: Randomized Experiments
