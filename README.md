@@ -176,7 +176,7 @@ as it effects any deadlines.
 #### Week 9: Experiments
 
 - March 3: Experimental Control
-- March 5: Conjoint and Multilevel Models
+- March 5: Surveys, Conjoint, and Multilevel Models
 - Milestone 9: Run Conjoint Experiment
 
 #### Spring Break
