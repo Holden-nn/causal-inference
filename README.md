@@ -173,10 +173,10 @@ as it effects any deadlines.
 - Milestone 7: Estimate Causal Effects
 - Milestone 8: Intermediate Presentation Slides
 
-#### Week 9: Randomized Experiments
+#### Week 9: Experiments
 
 - March 3: Experimental Control
-- March 5: Conjoint
+- March 5: Conjoint and Multilevel Models
 - Milestone 9: Run Conjoint Experiment
 
 #### Spring Break

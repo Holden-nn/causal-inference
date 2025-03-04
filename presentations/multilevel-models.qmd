@@ -1,0 +1,203 @@
+---
+title: "Multilevel Models"
+author: "IS 5150/6110"
+title-slide-attributes:
+  data-background-color: "#486790"
+format: 
+  revealjs:
+    theme: marc.scss     # Modified simple theme.
+    slide-number: c/t    # Numbered slides current/total.
+    self-contained: true # Required to display ../figures/.
+highlight-style: github
+execute:
+  eval: false
+  echo: true
+---
+
+##
+
+:::: {.columns .v-center}
+::: {.column width="100%"}
+![](../figures/meme_multilevel-names.png){fig-align="center"}
+:::
+::::
+
+
+
+# See job talk slides
+
+
+
+## 
+
+```{python}
+#| eval: true
+
+import numpy as np
+import polars as pl
+import pymc as pm
+import arviz as az
+
+np.random.seed(42)
+
+# Set the parameter values.
+beta0 = 3
+beta1 = 7
+sigma = 3
+n = 100
+
+# Simulate data.
+x = np.random.uniform(0, 7, size = n)
+y = beta0 + beta1 * x + np.random.normal(size = n) * sigma
+```
+
+##
+
+```{python}
+# Create a Model object.
+basic_model = pm.Model()
+
+# Specify the model.
+with basic_model:
+  # Prior.
+  beta = pm.Normal('beta', mu = 0, sigma = 10, shape = 2)
+  sigma = pm.HalfNormal('sigma', sigma = 1)
+
+  # Likelihood.
+  mu = beta[0] + beta[1] * x
+  y_obs = pm.Normal('y_obs', mu = mu, sigma = sigma, observed = y)
+
+# Create an InferenceData object.
+with basic_model:
+  # Draw 1000 posterior samples.
+  idata = pm.sample()
+```
+
+##
+
+:::: {.columns .v-center}
+::: {.column width="100%"}
+![](../figures/sampling-wait.png){fig-align="center"}
+:::
+::::
+
+## 
+
+```{python}
+# Have we recovered the parameters?
+az.summary(idata, round_to = 2)
+
+# Visualize marginal posteriors.
+az.plot_trace(idata, combined = True)
+```
+
+:::: {.columns .v-center}
+::: {.column width="100%"}
+![](../figures/intro-to-pymc_plot-01.png){fig-align="center"}
+:::
+::::
+
+## 
+
+:::: {.columns .v-center}
+::: {.column width="100%"}
+![](../figures/fox.png){fig-align="center"}
+:::
+::::
+
+## 
+
+```{python}
+#| eval: true
+
+# Import (standardized) fox data.
+foxes = pl.read_csv('../data/foxes.csv')
+
+# Separate predictors and the outcome.
+X = foxes.select(pl.col(['avgfood', 'groupsize'])).to_numpy()
+y = foxes.select(pl.col('weight')).to_numpy().flatten()
+
+y
+```
+
+## 
+
+```{python}
+# Estimate the direct causal effect of avgfood on weight.
+with pm.Model() as foxes_model:
+  # Data.
+  X_data = pm.Data('X_data', X)
+  y_data = pm.Data('y_data', y)
+
+  # Priors.
+  alpha = pm.Normal('alpha', mu = 0, sigma = 0.2)
+  beta = pm.Normal('beta', mu = 0, sigma = 0.5, shape = 2)
+  sigma = pm.Exponential('sigma', lam = 1)
+
+  # Likelihood.
+  mu = alpha + X_data @ beta
+  y_obs = pm.Normal('y_obs', mu = mu, sigma = sigma, observed = y_data)
+
+# Sample.
+with foxes_model:
+  draws = pm.sample()
+```
+
+## 
+
+```{python}
+# Visualize marginal posteriors.
+az.plot_forest(draws, var_names=['beta'], combined = True, hdi_prob=0.95)
+```
+
+:::: {.columns .v-center}
+::: {.column width="100%"}
+![](../figures/intro-to-pymc_plot-02.png){fig-align="center"}
+:::
+::::
+
+## 
+
+```{python}
+# Sample from the prior predictive distribution.
+with foxes_model:
+    prior_draws = pm.sample_prior_predictive()
+
+# Conduct a prior predictive check.
+az.plot_dist(prior_draws.prior_predictive['y_obs'], label = 'prior predictive')
+az.plot_dist(y, color = 'C1', label = 'observed')
+```
+
+:::: {.columns .v-center}
+::: {.column width="100%"}
+![](../figures/intro-to-pymc_plot-03.png){fig-align="center"}
+:::
+::::
+
+## 
+
+```{python}
+# Sample from the posterior predictive distribution.
+with foxes_model:
+    posterior_draws = pm.sample_posterior_predictive(draws)
+
+# Conduct a posterior predictive check.
+az.plot_dist(posterior_draws.posterior_predictive['y_obs'], label = 'posterior predictive')
+az.plot_dist(y, color = 'C1', label = 'observed')
+```
+
+:::: {.columns .v-center}
+::: {.column width="100%"}
+![](../figures/intro-to-pymc_plot-04.png){fig-align="center"}
+:::
+::::
+
+## 
+
+:::: {.columns .v-center}
+::: {.column width="100%"}
+- [PyMC](https://www.pymc.io/welcome.html) has a lot of options, including a suite of distributions for priors and likelihood functions as well as ways to estimate Bayesian models.
+- [ArviZ](https://python.arviz.org/en/stable/index.html) has many different visualization options for distributions, diagnostics, and prior and posterior predictive checks.
+- PyMC has a lot of flexibility, which is powerful but might also be scary. If you want a higher-level interface that behaves more like scikit-learn, look at [Bambi](https://bambinos.github.io/bambi/). It uses PyMC and ArviZ as well but in the background.
+:::
+::::
