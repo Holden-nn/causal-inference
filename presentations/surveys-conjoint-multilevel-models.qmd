@@ -1,0 +1,363 @@
+---
+title: |
+  | Surveys, Conjoint, 
+  | and Multilevel Models
+author: "IS 5150/6110"
+title-slide-attributes:
+  data-background-color: "#486790"
+format: 
+  revealjs:
+    theme: marc.scss     # Modified simple theme.
+    slide-number: c/t    # Numbered slides current/total.
+    self-contained: true # Required to display ../figures/.
+highlight-style: github
+execute:
+  eval: false
+  echo: true
+---
+
+# Surveys
+
+## An essential data collection method
+
+:::: {.columns}
+
+::: {.column width="50%"}
+::: {.fragment fragment-index=1 .fade-left}
+*Advantages*
+:::
+
+::: {.incremental}
+- Easy to administer to a large number of respondents
+- Standardized questions provide a basis for comparison
+- Structured data simplifies analysis
+- Straightforward for respondents
+:::
+:::
+
+::: {.column width="50%"}
+::: {.fragment fragment-index=2 .fade-left}
+*Disadvantages*
+:::
+
+::: {.incremental}
+- Getting the right sample can be difficult and expensive
+- Stuctured questions may unduly constrain respondents
+- Sensitive questions can be challenging to answer
+- Proper wording can be difficult
+:::
+:::
+
+::::
+
+## What makes a good survey?
+
+::: {.incremental}
+- Language and phrasing needs to fit the audience
+- Wording and structure should encourage completion
+- Make it easy to check any display or skip patterns
+- Language should be brief, clear, and conversational
+- Questions need to be answerable by the audience
+- Be careful about assumed knowledge and being ambiguous
+- Avoid double-barreled and leading/loaded questions
+:::
+
+## Survey tips
+
+::: {.incremental}
+- Use projection for potentially loaded questions
+- Make rating scales simple and anchored
+- Use display and skip patterns to funnel respondents to relevant questions
+- Include "Don't know" or "None of the above" options
+- Include an "Other, please specify" open-ended option when you may not have exhaustive response categories
+- Consider randomizing question options to minimize order bias
+- Consider when to use forced choice
+:::
+
+## All measurements come with error
+
+:::: {.columns .v-center}
+::: {.column width="100%"}
+![](../figures/survey-error.png){fig-align="center"}
+:::
+::::
+
+## Ask easy questions first, difficult questions last
+
+:::: {.columns .v-center}
+::: {.column width="100%"}
+![](../figures/survey-funnel.png){fig-align="center"}
+:::
+::::
+
+# Conjoint
+
+## {auto-animate=true}
+
+![](../figures/choice-task.png){fig-align="center"}
+
+## {auto-animate=true}
+
+:::: {.columns .v-center}
+
+::: {.column width="40%"}
+![](../figures/choice-task.png){fig-align="center"}
+:::
+
+::: {.column width="60%"}
+::: {.incremental}
+- Products are defined by attributes, each with a number of levels
+- Respondents choose from among product alternatives
+- **Respondent-level preferences** are estimated for each attribute level
+- Preference estimates are used to make counterfactual predictions in a simulated market
+- **Market simulators** inform new product development, pricing, product line optimization, etc.
+:::
+:::
+
+::::
+
+## {auto-animate=true}
+
+:::: {.columns .v-center}
+
+::: {.column width="40%"}
+![](../figures/choice-task.png){fig-align="center"}
+:::
+
+::: {.column width="60%"}
+$$
+U_{hj} = \beta_{h1}x_{j1} + \beta_{h2}x_{j2} + \cdots + \beta_{hk}x_{jk} + \epsilon_{hj}
+$$
+:::
+
+::::
+
+## {visibility="uncounted"}
+
+:::: {.columns .v-center}
+
+::: {.column width="40%"}
+![](../figures/choice-task.png){fig-align="center"}
+:::
+
+::: {.column width="60%"}
+$$
+\color{grey}{U_{hj} = \color{black}{\beta_{h1}}x_{j1} + \color{black}{\beta_{h2}}x_{j2} + \cdots + \color{black}{\beta_{hk}}x_{jk} + \epsilon_{hj}}
+$$
+:::
+
+::::
+
+## {visibility="uncounted"}
+
+:::: {.columns .v-center}
+
+::: {.column width="40%"}
+![](../figures/choice-task.png){fig-align="center"}
+:::
+
+::: {.column width="60%"}
+$$
+\color{grey}{U_{hj} = \beta_{h1}\color{black}{x_{j1}} + \beta_{h2}\color{black}{x_{j2}} + \cdots + \beta_{hk}\color{black}{x_{jk}} + \epsilon_{hj}}
+$$
+:::
+
+::::
+
+## Discrete Choice
+
+For each respondent $h$ and choice task $t$ with $j$ alternatives and $k$ attribute levels:
+
+$$
+\begin{aligned}
+y_{ht} & = \text{argmax}(pr(y_{ht})), \ \text{s.t.} \ y_{ht} \in \left\{1, 2, \cdots, J \right\} \\[2mm]
+p(y_{htj}) & = {\exp\left(\beta_{h1}x_{tj1} + \beta_{h2}x_{tj2} + \cdots + \beta_{hk}x_{tjk} \right) \over \sum_{j=1}^J \exp\left(\beta_{h1}x_{tj1} + \beta_{h2}x_{tj2} + \cdots + \beta_{hk}x_{tjk} \right)} \\[2mm]
+\color{grey}{B} & \hspace{3mm} \color{grey}{\sim MVN\left(\gamma, \Sigma \right)} \\[2mm]
+\color{grey}{\gamma} & \hspace{3mm} \color{grey}{\sim \textit{Normal}(0, 1)} \\[2mm]
+\color{grey}{\Sigma} & \hspace{3mm} \color{grey}{= \text{diag}(\tau) \ \Omega \ \text{diag}(\tau)} \\[2mm]
+\color{grey}{\Omega} & \hspace{3mm} \color{grey}{\sim LKJ(1)} \\[2mm]
+\color{grey}{\tau} & \hspace{3mm} \color{grey}{\sim \textit{Half-Normal}(1, 2)}
+\end{aligned}
+$$
+
+## Discrete Choice {visibility="uncounted"}
+
+For each respondent $h$ and choice task $t$ with $j$ alternatives and $k$ attribute levels:
+
+$$
+\begin{aligned}
+\color{grey}{y_{ht}} & \hspace{3mm} \color{grey}{= \text{argmax}(pr(y_{ht})), \ \text{s.t.} \ y_{ht} \in \left\{1, 2, \cdots, J \right\}} \\[2mm]
+\color{grey}{p(y_{htj})} & \hspace{3mm} \color{grey}{= {\exp\left(\beta_{h1}x_{tj1} + \beta_{h2}x_{tj2} + \cdots + \beta_{hk}x_{tjk} \right) \over \sum_{j=1}^J \exp\left(\beta_{h1}x_{tj1} + \beta_{h2}x_{tj2} + \cdots + \beta_{hk}x_{tjk} \right)}} \\[2mm]
+B & \sim MVN\left(\gamma, \Sigma \right) \\[2mm]
+\color{grey}{\gamma} & \hspace{3mm} \color{grey}{\sim \textit{Normal}(0, 1)} \\[2mm]
+\color{grey}{\Sigma} & \hspace{3mm} \color{grey}{= \text{diag}(\tau) \ \Omega \ \text{diag}(\tau)} \\[2mm]
+\color{grey}{\Omega} & \hspace{3mm} \color{grey}{\sim LKJ(1)} \\[2mm]
+\color{grey}{\tau} & \hspace{3mm} \color{grey}{\sim \textit{Half-Normal}(1, 2)}
+\end{aligned}
+$$
+
+## 
+
+::: {.v-center}
+
+$$
+\LARGE{p(\theta | X) \propto p(X | \theta) \ p(\theta)}
+$$
+:::
+
+## 
+
+::: {.v-center}
+
+$$
+\LARGE{p(\theta, \alpha | X) \propto p(X | \theta) \ \color{red}{p(\theta | \alpha)} \ p(\alpha)}
+$$
+:::
+
+## Discrete Choice {visibility="uncounted"}
+
+For each respondent $h$ and choice task $t$ with $j$ alternatives and $k$ attribute levels:
+
+$$
+\begin{aligned}
+\color{grey}{y_{ht}} & \hspace{3mm} \color{grey}{= \text{argmax}(pr(y_{ht})), \ \text{s.t.} \ y_{ht} \in \left\{1, 2, \cdots, J \right\}} \\[2mm]
+\color{grey}{p(y_{htj})} & \hspace{3mm} \color{grey}{= {\exp\left(\beta_{h1}x_{tj1} + \beta_{h2}x_{tj2} + \cdots + \beta_{hk}x_{tjk} \right) \over \sum_{j=1}^J \exp\left(\beta_{h1}x_{tj1} + \beta_{h2}x_{tj2} + \cdots + \beta_{hk}x_{tjk} \right)}} \\[2mm]
+\color{grey}{B} & \hspace{3mm} \color{grey}{\sim MVN\left(\gamma, \Sigma \right)} \\[2mm]
+\gamma & \sim \textit{Normal}(0, 1) \\[2mm]
+\Sigma & = \text{diag}(\tau) \ \Omega \ \text{diag}(\tau) \\[2mm]
+\Omega & \sim LKJ(1) \\[2mm]
+\tau & \sim \textit{Half-Normal}(1, 2)
+\end{aligned}
+$$
+
+# [discover.sawtoothsoftware.com](http://discover.sawtoothsoftware.com)
+
+# Multilevel Models
+
+##
+
+:::: {.columns .v-center}
+::: {.column width="100%"}
+![](../figures/meme_multilevel-names.png){fig-align="center"}
+:::
+::::
+
+## 
+
+::: {.v-center}
+
+$$
+\LARGE{p(\theta, \alpha | X) \propto p(X | \theta) \ p(\theta | \alpha) \ p(\alpha)}
+$$
+:::
+
+# *Adaptive* Shrinkage
+
+## 
+
+:::: {.columns .v-center}
+::: {.column width="100%"}
+![](../figures/fox.png){fig-align="center"}
+:::
+::::
+
+## 
+
+```{python}
+#| eval: true
+import numpy as np
+import polars as pl
+import pymc as pm
+import arviz as az
+
+# Import (standardized) fox data.
+foxes = pl.read_csv('../data/foxes.csv')
+
+# Separate predictors and the outcome.
+X = foxes.select(pl.col(['avgfood', 'groupsize'])).to_numpy()
+y = foxes.select(pl.col('weight')).to_numpy().flatten()
+
+y
+```
+
+## 
+
+```{python}
+# Estimate the direct causal effect of avgfood on weight.
+with pm.Model() as foxes_model:
+  # Data.
+  X_data = pm.Data('X_data', X)
+  y_data = pm.Data('y_data', y)
+
+  # Priors.
+  alpha = pm.Normal('alpha', mu = 0, sigma = 0.2)
+  beta = pm.Normal('beta', mu = 0, sigma = 0.5, shape = 2)
+  sigma = pm.Exponential('sigma', lam = 1)
+
+  # Likelihood.
+  mu = alpha + X_data @ beta
+  y_obs = pm.Normal('y_obs', mu = mu, sigma = sigma, observed = y_data)
+
+# Sample.
+with foxes_model:
+  draws = pm.sample()
+```
+
+## 
+
+```{python}
+# Visualize marginal posteriors.
+az.plot_forest(draws, var_names=['beta'], combined = True, hdi_prob=0.95)
+```
+
+:::: {.columns .v-center}
+::: {.column width="100%"}
+![](../figures/intro-to-pymc_plot-02.png){fig-align="center"}
+:::
+::::
+
+## 
+
+```{python}
+# Sample from the prior predictive distribution.
+with foxes_model:
+    prior_draws = pm.sample_prior_predictive()
+
+# Conduct a prior predictive check.
+az.plot_dist(prior_draws.prior_predictive['y_obs'], label = 'prior predictive')
+az.plot_dist(y, color = 'C1', label = 'observed')
+```
+
+:::: {.columns .v-center}
+::: {.column width="100%"}
+![](../figures/intro-to-pymc_plot-03.png){fig-align="center"}
+:::
+::::
+
+## 
+
+```{python}
+# Sample from the posterior predictive distribution.
+with foxes_model:
+    posterior_draws = pm.sample_posterior_predictive(draws)
+
+# Conduct a posterior predictive check.
+az.plot_dist(posterior_draws.posterior_predictive['y_obs'], label = 'posterior predictive')
+az.plot_dist(y, color = 'C1', label = 'observed')
+```
+
+:::: {.columns .v-center}
+::: {.column width="100%"}
+![](../figures/intro-to-pymc_plot-04.png){fig-align="center"}
+:::
+::::
+
+## 
+
+:::: {.columns .v-center}
+::: {.column width="100%"}
+- [PyMC](https://www.pymc.io/welcome.html) has a lot of options, including a suite of distributions for priors and likelihood functions as well as ways to estimate Bayesian models.
+- [ArviZ](https://python.arviz.org/en/stable/index.html) has many different visualization options for distributions, diagnostics, and prior and posterior predictive checks.
+- PyMC has a lot of flexibility, which is powerful but might also be scary. If you want a higher-level interface that behaves more like scikit-learn, look at [Bambi](https://bambinos.github.io/bambi/). It uses PyMC and ArviZ as well but in the background.
+:::
+::::
