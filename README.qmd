@@ -138,7 +138,7 @@ Please note that I reserve the right to change the syllabus, including the sched
 - Milestone 7: Estimate Causal Effects
 - Milestone 8: Intermediate Presentation Slides
 
-#### Week 9: Experiments
+#### Week 9: Experimental Data
 
 - March 3: Experimental Control
 - March 5: Surveys, Conjoint, and Multilevel Models
@@ -149,29 +149,29 @@ Please note that I reserve the right to change the syllabus, including the sched
 - March 10: No Class (Spring Break)
 - March 12: No Class (Spring Break)
 
-#### Week 10: Heterogeneous Effects
+#### Week 10: Observational Data
 
-- March 17: Choice Modeling
-- March 19: Estimating Hierarchical Models
-- Milestone 10: Estimate Heterogeneous Effects
+- March 17: Diff-in-Diff
+- March 19: Diff-in-Diff
+- Milestone 10: Implement Diff-in-Diff Strategy
 
-#### Week 11: Observational Data
+#### Week 11: Synthetic Controls
 
-- March 24: Approximating Experimental Control
-- March 26: Diff-in-Diff
-- Milestone 11: Implement Diff-in-Diff Strategy
+- March 24: Matching
+- March 26: Meta-Learning
+- Milestone 11: Implement Synthetic Controls
 
-#### Week 12: Synthetic Controls
+#### Week 12: Causal Machine Learning
 
-- March 31: Matching
-- April 2: Meta-Learning
-- Milestone 12: Implement Synthetic Controls
+- March 31: Doubly Robust Machine Learning
+- April 2: Other Methods
+- Milestone 12: Implement Causal Machine Learning
 
-#### Week 13: Causal Machine Learning
+#### Week 13: TBD
 
-- April 7: Doubly Robust Machine Learning
-- April 9: Other Methods
-- Milestone 13: Implement Causal Machine Learning
+- April 7: TBD
+- April 9: TBD
+- Milestone 13: TBD
 
 #### Week 14: Final Presentations
 
