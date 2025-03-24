@@ -1,0 +1,154 @@
+---
+title: "Difference In Differences Introduction"
+author: "Holden Nielson"
+title-slide-attributes:
+  data-background-color: "#486790"
+format: 
+  revealjs:
+    theme: marc.scss     # Modified simple theme.
+    slide-number: c/t    # Numbered slides current/total.
+    self-contained: true # Required to display ../figures/.
+---
+
+## What is Difference In Differences
+
+- Difference in Differences (DiD) is a causal inference method utilizing observational data
+- DiD attempts to recreate an experiment by sorting data in nature into 'treatment' and 'control' groups
+    - This is a called a 'natural experiment'
+- DiD is built on linear regression, and requires an addtional assumption to ensure the it explains a causal outcome
+
+---
+
+![DAG w/ Time Backdoor](../figures/DiD_dagA.png)
+
+---
+
+![DAG w/ Time & Group Backdoor](../figures/DiD_dagB.png)
+
+---
+
+## DiD Closes Both Backdoors at Once
+
+- We will close the Group backdoor by controlling for group differences (again group is 'treatment' or 'control')
+- We will close the Time backdoor by comparing variation within each group over time
+- Essentially we are looking for how much MORE the treatment group was impacted over time versus the control group (the difference in differences)
+
+---
+
+![Simple Illustration of DiD](../figures/DiD_basic_example.png)
+
+---
+
+## EX: John Snow's 1855 Proof of Cholera's Source
+
+- John Snow in 1855 found that Cholera was spread via contaminated water and not airborn infection
+- London had a major water company Lambeth who was legally required to move their water supply from downstream to upstream between the period from 1849 and 1854
+    - Seems like a good instance to test whether drinking contaminated water contributed to Cholera death
+- However, if Snow only catalogued the difference in Cholera death rate from 1849 and 1854, he would have no evidence the Lambeth change had caused it
+- So Snow collected data on Cholera death rate for two groups: Lambeth customers ('treatment') and other sources ('control')
+
+---
+
+| Source of Water |  Death Rate 1849| Death Rate 1854|
+|---------|------:|--------:|
+| Non-Lambeth      | 134.9 | 146.6|
+| Lambeth     |  130.1|   84.9|
+| Death rate is deaths per 10,000 Londoners| 
+
+\
+
+- From 1849 to 1854 Lambeth's death rate fell rapidly by 45.2 deaths per 10,000, impressive, but it could be caused by something else
+- Using DiD we get a convincing causal explanation however: (84.9 - 130.1) - (146.6 - 134.9) = -57.1 reduced deaths
+
+---
+
+- The below comes from perhaps the most famous DiD study Card and Kruger 1994.
+- In April of 1992, New Jersey's minimum wage increased by $0.80, but no change was made in Pennsylvania
+- Card and Krueger surveyed fast food employment in the two states before and after the change in minimum wage
+    - Assuming fast food employment shouldn't vary much between the two states without treatment, Pennsylvania will serve as the counterfactual
+
+
+| | New Jersey | Pennsylvania | Diff |
+|:---|:---|:---|:---|
+|February| 20.44 | 23.33 | −2.89|
+| November| 21.03| 21.17 | -0.14 |
+|Change | 0.59 | -2.16 | 2.75 |   
+
+- The paper famously found (unintuitively) that employment in NJ slightly increased relative to PA (firms increased prices rather than fire employees)
+
+---
+
+## Using DiD
+
+- The hardest part of implmenting a DiD model is finding a suitable set of 'treatment' and 'control' groups
+    - The two groups must have a convincing reason to believe they would act similarly in the case of a counterfactual with no treatment
+- Your dataset must include information on these groups and must include time period data for at least two points (pre-treatment and post-treatment)
+
+## Parallel Trends Assumption
+
+- In addition to the traditional linear regression assumptions, to utilize DiD, your data must fit the 'Parallel Trends' assumption
+- Parallel Trends Assumption: In the absense of a treatment, the trend/difference between 'treatment' and 'control' would have remained the same
+- This assumption is unobservable – you cannot see the counterfactual where the treatment did not occur – but it can be justified 
+    - Beyond reasoning which justifies that there are no unobserved cofounders, you can also use prior trends and placebo tests
+        - Both of these methods involve showing a parallel trend prior to the 'treatment period'
+
+---
+
+![Left: Good Prior Trends, Right: Bad Prior Trends](../figures/DiD_priortrends.png)
+
+---
+
+## Performing DiD: Two Time Periods
+
+$$
+Y = \alpha_g + \alpha_t + \beta_1 Treated + \epsilon
+$$
+
+- $\alpha_g$ is fixed effects/intercepts for all of your groups
+- $\alpha_t$ is fixed effcts/intercepts for your time periods
+- $Treated$ is a dummy variable which is true when an observation occurs both:
+    - Post Treatment 
+    - Within the Treatment group
+
+---
+
+$$
+Y = \beta_0 + \beta_1 TreatedGroup + \beta_2 AfterTreatment + \\
+\beta_3 (TreatedGroup \times AfterTreatment) + \epsilon
+$$
+
+---
+
+## Performing DiD: Interaction Term with Time
+
+$$
+Y = \beta_0 + \beta_1 Time + \beta_2 Treatment +\\ \beta_3 Treatment \times Time + \epsilon
+$$
+
+- This regression understands the treatment more as a break in the literal linear trend
+- Utilizing many time periods might stress the amount of data you have and introduce noisier results
+
+## Alternatively:
+
+$$
+Y = \alpha_g + \alpha_t + \beta_{-T_1} Treated + \beta_{-(T_1 - 1)} Treated + \ldots\\ + B_{-1} Treated + \beta_1 Treated + \ldots\\ \beta_{T_2} Treated + \epsilon
+$$
+
+- Where $T_1$ is the number of time periods before treatment, $T_2$ the number of time periods after treatment and $\beta_{n}$ is the DiD calculation at time period $n$
+- The betas less than 0 should be close to zero and serve as a form of placebo testing of parallel trends
+
+## Testing Parallel Trends: 
+
+- Utilizing only pretreatment data, we can see if the 'treatment' and 'control' group display parallel trends
+
+$$
+Y = \alpha_g + \beta_1 Time + \beta_2 (Time \times Group) + \epsilon
+$$
+
+- If the coefficient for $\beta_2$ is already large without including the post-treatment time periods, then you likely do not have parallel trends
+
+## Performing DiD: Utilizing Covariates?
+
+- Perhaps our DAG or our analysis of prior trends will indicate that the parallel trends assumption might not hold
+- This might be a sign to utilize a different method/dataset, but Covariates could be utilized instead to demonstrate that, controlling for an additional factor, parallel trends hold
+- There inclusion can get thorny though, and might undermine our assumptions or our treatment results
