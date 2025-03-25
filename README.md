@@ -205,7 +205,7 @@ as it effects any deadlines.
 #### Week 13: TBD
 
 - April 7: TBD
-- April 9: TBD
+- April 9: Marginal Effects
 - Milestone 13: TBD
 
 #### Week 14: Final Presentations
