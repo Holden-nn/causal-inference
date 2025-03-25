@@ -1,0 +1,101 @@
+---
+title: "Synthetic Control Method"
+author: "Holden Nielson"
+title-slide-attributes:
+  data-background-color: "#486790"
+format: 
+  revealjs:
+    theme: marc.scss     # Modified simple theme.
+    slide-number: c/t    # Numbered slides current/total.
+    self-contained: true # Required to display ../figures/.
+---
+
+## Recall DiD
+
+- Diff in Diff uses a quasi-experiment where we create a group of 'treatment' observations and a 'control' group unaffected by our treatment
+    - Notably, our two groups must uphold the *prior trends* assumption prior to our treatment. 
+- But this assumption is pretty intense, and you might not have the data to find a suitable counter-factual group.
+    - If only one country, state, city, school, program, etc. is impacted by a treatment, it might be too idiosyncratic to observe a prior trend.
+- The Synthetic Control Method seeks to mitigate this issue by using an ensemble of untreated units to construct a 'synthetic control' group which can then be compared like the 'control' group in Difference in Differences
+    - Utilizes a form of matching rather than introducing a strenuous assumption like *parallel trends*
+
+
+## Example Graphic
+
+![](../figures/scm-graph.jpg)
+
+## EX: Abadie et al. (2008)
+- There exists a long-standing Economic debate over the efficacy of cigarette taxes 
+    - Do these taxes effectively discourage cigarette consumption, or do addicts just absorb the price increase?
+- In 1988, California implemented Proposition 99 which taxed each pack of cigarettes at 25 cents
+- However, cigarette sales were already declining faster than the rest of the nation in California, and the state was too unique to compare to any individual or simple average of neighboring states
+
+---
+
+![](../figures/abadie-2008-results.webp)
+
+---
+
+## How do we create our Synthetic Control?
+
+$$
+\alpha_{it} = Y_{it} - Y_{it}^{N}
+$$
+
+- $\alpha_{it}$ is the treatment effect of unit $i$ at time $t$
+- $Y_{it}$ is the observed value of $i$ at time $t$ and $Y_{it}^{N}$ is the value of the untreated value of $i$
+    - For most units, $Y_{it}^{N}$ should be equal to $Y_{it}$, but for our treated unit, they will be different if there is a treatment effect
+
+## How do we create our Synthetic Control?
+
+- Call the treated unit $1$ and our untreated units $2\ldots (J+1)$ and the treatment time $T_0$ 
+- So we're concerned with $\alpha_{1t}$ for $t > T_0$
+- And the synthetic control method can help us generate $Y_{1t}^{N}$
+
+## Generating our Counterfactual Group
+
+- Using time periods prior to $T_0$, we could take untreated units and create a linear combination which looks as near to $Y_{1t}$ as possible. These values will make up $Y_{1t}^{N}$
+$$
+Y_{1t}^{N} = \sum_{i=2}^{J+1} w^{*}_{j}Y_{it}
+$$
+
+- However if we allow our weights to take on values greater than 1 or less than 0, doing this will end up overfitting our counterfactual and create strange behavior
+
+---
+
+![an overfit synthetic control model](../figures/overfit-synthetic-control.png)
+
+- Notice how the lines completely overlap prior to treatment and the Synthetic Control's eratic movement
+
+---
+
+## Generating our Counterfactual Group
+
+- Instead, if we require:
+    - $w_i \geq 0$
+    - $\sum_{i = 2}^{J+1} w_i = 1$ 
+    - values which $\text{min}||X_1 - X_0W||$
+- We'll generate an interpolated group which should result in smoother realistic looking results.
+
+
+## Infererence
+
+- Beyond just analyzing the size and variance of our treatment effect, synthetic control methods often utilize more involved placebo testing of our results
+- There is still some obscurity in terms of what a deviation from a 'synthetic control' means since we don't make a serious prior trends assumption
+- Instead, often we will conduct a synthetic control analysis on every untreated unit and compare the results to our 'actually treated' unit
+
+---
+
+![](../figures/synthetic_control_placebo.png)
+
+---
+
+
+## Practical Concerns for Synthetic Control
+
+- We must select untreated units that are unaffected by any other similar treatments.
+    - Ex: In the California example, you can't pick states which instituted similar tax policies on cigarettes over the time period. Undermines the justification to construct the counterfactual
+- Unlike Difference in Differences, you must have a good chunk of pre-treatment data in order to contruct your accurate
+    - Obviously to check for *prior trends* you should have a decent amount of pre-treatment data, but it is a requirement for synthetic control
+- Analyzing long term impacts is simplified as we don't need a strenuous amount of control and interaction terms we need to analyze
+- Genuine inference requires something like the placebo test. Can't just look at our treatment effect coefficient
